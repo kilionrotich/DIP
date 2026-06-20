@@ -34,25 +34,20 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-// Database connection
+// Database connection + start server ONCE
 (async () => {
-  try{
+  try {
     await sequelize.authenticate();
     console.log('Yaay! Database connected');
 
     await sequelize.sync();
-      console.log('Models synced succesfuly');
-    
-      app.listen(process.env.PORT || 5000, () => {
-        console.log('server started on port ${process.env.PORT || 5000}');
-      });
+    console.log('Models synced succesfuly');
+
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
   } catch (error) {
     console.error('X Database connection error:', error);
   }
 })();
-
-// Start server
-const PORT = process.env.PORT || 10000; // fallback for local dev
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
