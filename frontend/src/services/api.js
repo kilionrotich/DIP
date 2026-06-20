@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000',
+  // Deployed backend (used when env var is not set at build time)
+  baseURL: process.env.REACT_APP_API_BASE_URL || 'https://dip-5u7u.onrender.com',
 });
 
 api.interceptors.request.use((config) => {
