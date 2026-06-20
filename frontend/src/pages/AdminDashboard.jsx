@@ -38,7 +38,7 @@ export default function AdminDashboard() {
     setMessage(null);
     setError(null);
     try {
-      await api.post('/deals', dealForm);
+      await api.post('/api/deals', dealForm);
       setMessage('Deal created successfully!');
     } catch (err) {
       setError(err.response?.data?.error || 'Error creating deal');
