@@ -1,0 +1,14 @@
+{
+  "name": "deal-investment-platform",
+  "version": "1.0.0",
+  "description": "Fullstack Deal Investment Platform (React + Node.js + PostgreSQL)",
+  "scripts": {
+    "backend": "npm --prefix backend start",
+    "frontend": "npm --prefix frontend start",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\""
+  },
+  "dependencies": {
+    "@babel/runtime": "^8.0.0",
+    "concurrently": "^8.2.2"
+  }
+}

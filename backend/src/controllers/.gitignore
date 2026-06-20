@@ -1,0 +1,29 @@
+#Environmental variables
+.env
+.env.local
+.env.production
+
+#Dependencies
+node_modules/
+
+#Build outputs
+dist/
+build/
+.next/
+out/
+
+#Logs
+*.log
+logs/
+
+#OS files
+.DS_Store
+Thumbs.db
+
+#IDE/editor
+.vscode/
+.idea/
+
+#Cache
+.cache/
+.tmp/
