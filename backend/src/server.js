@@ -22,8 +22,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-//CORS setup
-app.use(cors({ origin: "https://dip-sand.vercel.app"}));
+// CORS setup
+// Allow configured origins; fallback to permissive CORS to avoid "Network error" on phones/browsers.
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: allowedOrigins.length ? allowedOrigins : true,
+    credentials: true,
+  })
+);
 
 // Routes
 app.use('/api/auth', authRoutes);
