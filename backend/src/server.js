@@ -22,6 +22,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+//CORS setup
+app.use(cors({ origin: "https://dip-sand.vercel.app"}));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/deals', dealRoutes);
