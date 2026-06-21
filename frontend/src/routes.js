@@ -7,7 +7,11 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import InvestorDashboard from './pages/InvestorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import DealDetails from './pages/DealDetails';
+
+
+
 
 function ProtectedRoute({ children, role }) {
   const { loading, isAuthenticated, user } = useAuth();
@@ -47,6 +51,15 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/super-admin"
+        element={
+          <ProtectedRoute role="super_admin">
+            <SuperAdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/deal/:id"
         element={

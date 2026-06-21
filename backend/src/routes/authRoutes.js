@@ -1,15 +1,26 @@
 // backend/src/routes/authRoutes.js
 import express from 'express';
-import { registerUser, loginUser, getAllUsers } from '../controllers/authController.js';
-import { verifyToken, isAdmin } from '../middleware/authMiddleware.js';
+import {
+  registerUser,
+  loginUser,
+  listAdmins,
+  createAdmin,
+  updateAdmin,
+  deleteAdmin,
+} from '../controllers/authController.js';
+import { verifyToken, isSuperAdmin, isAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 
-// Admin: list all users
-router.get('/users', verifyToken, isAdmin, getAllUsers);
+// Super admin: manage admin accounts
+router.get('/admins', verifyToken, isSuperAdmin, listAdmins);
+router.post('/admins', verifyToken, isSuperAdmin, createAdmin);
+router.put('/admins/:id', verifyToken, isSuperAdmin, updateAdmin);
+router.delete('/admins/:id', verifyToken, isSuperAdmin, deleteAdmin);
+
 
 export default router;
 

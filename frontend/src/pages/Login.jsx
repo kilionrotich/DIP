@@ -1,10 +1,11 @@
 // frontend/src/pages/Login.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import useAuth from '../hooks/useAuth';
 
 export default function Login() {
   const { login } = useAuth();
+
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -28,7 +29,10 @@ export default function Login() {
       const role = user?.role || user?.type;
 
       setSuccess('Login successful');
-      navigate(role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+      if (role === 'super_admin') navigate('/super-admin', { replace: true });
+      else if (role === 'admin') navigate('/admin', { replace: true });
+      else navigate('/dashboard', { replace: true });
+
     } catch (err) {
       console.error("Login error:", err); // debug
       setError(err?.response?.data?.message || err?.message || 'Login failed');

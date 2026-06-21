@@ -25,3 +25,19 @@ export function isAdmin(req, res, next) {
   }
   next();
 }
+
+// Check if user is super admin
+export function isSuperAdmin(req, res, next) {
+  if (req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Super admin access required' });
+  }
+  next();
+}
+
+// Admin features: allow both admin + super_admin
+export function isAdminOrSuperAdmin(req, res, next) {
+  if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+}

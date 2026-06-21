@@ -74,11 +74,14 @@ export default function Register() {
 
           <div className="form-group">
             <label className="label">Role</label>
-            <select className="input" value={role} onChange={(e) => setRole(e.target.value)}>
+            <select className="input" value={role} disabled>
               <option value="investor">Investor</option>
-              <option value="admin">Admin</option>
             </select>
+            <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 6 }}>
+              Admin accounts are created by Super Admin.
+            </div>
           </div>
+
 
           <button className="btn primary" type="submit" disabled={loading} style={{ width: '100%' }}>
             {loading ? 'Creating account...' : 'Register'}

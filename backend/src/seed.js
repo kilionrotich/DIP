@@ -1,8 +1,10 @@
 import { sequelize } from './config/db.js';
+import bcrypt from 'bcryptjs';
 import User from './models/User.js';
 import Deal from './models/Deal.js';
 import Investment from './models/Investment.js';
 import Profit from './models/Profit.js';
+
 
 (async () => {
   try {
@@ -13,46 +15,70 @@ import Profit from './models/Profit.js';
     await sequelize.sync({ force: true });
 
     // Create sample users
-    const investor = await User.create({
-      username: 'investor1',   // ✅ required
-      email: 'investor@example.com',
-      password: 'hashedpassword' // use bcrypt in real app
+    const superAdminPasswordHash = await bcrypt.hash('superadmin123', 10);
+    const superAdmin = await User.create({
+      username: 'kilion',
+      email: 'kilionkimurgor@gmail.com',
+      password: superAdminPasswordHash,
+      role: 'super_admin',
     });
 
-    const admin = await User.create({
-      username: 'admin1',      // ✅ required
+    const investorPasswordHash = await bcrypt.hash('investor123', 10);
+    const investor = await User.create({
+      username: 'investor1',
+      email: 'investor@example.com',
+      password: investorPasswordHash,
+      role: 'investor',
+    });
+
+    const adminPasswordHash = await bcrypt.hash('admin123', 10);
+    await User.create({
+      username: 'admin1',
       email: 'admin@example.com',
-      password: 'hashedpassword',
-      role: 'admin'
+      password: adminPasswordHash,
+      role: 'admin',
     });
 
     // Create sample deals
+    const now = new Date();
+    const inOneYear = new Date(now);
+    inOneYear.setFullYear(inOneYear.getFullYear() + 1);
+
     const deal1 = await Deal.create({
       title: 'Real Estate Project',
       description: 'Luxury apartments in Eldoret',
-      amountRequired: 500000,
-      status: 'open'
+      amount_required: 500000,
+      expected_return: 650000,
+      start_date: now,
+      end_date: inOneYear,
+      status: 'open',
     });
 
     const deal2 = await Deal.create({
       title: 'AgriTech Startup',
       description: 'Smart irrigation systems',
-      amountRequired: 200000,
-      status: 'open'
+      amount_required: 200000,
+      expected_return: 260000,
+      start_date: now,
+      end_date: inOneYear,
+      status: 'open',
     });
 
-    // Investor invests in deal1
+    // Investor invests in deal1 (match Investment model fields)
     await Investment.create({
-      investor_id: investor.id,
-      deal_id: deal1.id,
-      amount: 100000
+      investor_id: investor.user_id ?? investor.id,
+      deal_id: deal1.deal_id ?? deal1.id,
+      amount_invested: 100000,
+      expected_return: 150000,
+      status: 'active',
     });
 
-    // Add profit record
+    // Add profit record (match Profit model fields)
     await Profit.create({
-      investor_id: investor.id,
-      totalProfit: 15000
+      investor_id: investor.user_id ?? investor.id,
+      total_profit: 15000,
     });
+
 
     console.log('Seed data inserted successfully!');
     process.exit(0);
