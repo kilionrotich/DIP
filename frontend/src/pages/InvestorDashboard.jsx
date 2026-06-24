@@ -2,15 +2,24 @@ import React, { useEffect, useMemo, useState } from 'react';
 import useAuth from '../hooks/useAuth';
 import useDeals from '../hooks/useDeals';
 import { getProfits, getInvestments } from '../services/investmentService';
-import DashboardStats from '../components/DashboardStats';
 import DealCrad from '../components/DealCrad';
+
+import {
+  InvestorKPICards,
+  ActiveDeals,
+  ProfitTrends,
+  InvestmentHistory,
+  Notifications,
+  Diversification,
+  InboxSupport,
+} from '../components/investor';
 
 export default function InvestorDashboard() {
   const { user, logout } = useAuth();
   const { deals, loading: dealsLoading, error: dealsError } = useDeals();
 
   const [investments, setInvestments] = useState([]);
-  const [profits, setProfits] = useState(null);
+  const [profitsRows, setProfitsRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -22,11 +31,17 @@ export default function InvestorDashboard() {
       try {
         const [invRes, profRes] = await Promise.all([
           getInvestments().catch(() => []),
-          getProfits().catch(() => null),
+          getProfits().catch(() => []),
         ]);
+
         if (!mounted) return;
-        setInvestments(Array.isArray(invRes) ? invRes : invRes?.investments || []);
-        setProfits(profRes?.profits || profRes);
+
+        const invList = Array.isArray(invRes) ? invRes : invRes?.investments || [];
+        setInvestments(invList);
+
+        // backend returns Profit.findAll => array
+        const profList = Array.isArray(profRes) ? profRes : profRes?.profits || [];
+        setProfitsRows(profList);
       } catch (e) {
         if (!mounted) return;
         setError(e?.message || 'Failed to load dashboard');
@@ -35,25 +50,33 @@ export default function InvestorDashboard() {
         setLoading(false);
       }
     })();
+
     return () => {
       mounted = false;
     };
   }, []);
 
-  const stats = useMemo(() => {
-    const totalInvested = investments.reduce(
-      (sum, i) => sum + (Number(i.amount_invested || i.amount || 0)),
+  const kpis = useMemo(() => {
+    const totalInvested = (investments || []).reduce(
+      (sum, i) => sum + Number(i.amount_invested ?? i.amount ?? 0),
       0
     );
-    const profitValue = profits
-      ? Number(profits.totalProfit || profits.amount || profits.profit || 0)
-      : 0;
+
+    const profitsTotal = (profitsRows || []).reduce(
+      (sum, p) => sum + Number(p.total_profit ?? p.totalProfit ?? p.amount ?? p.profit ?? 0),
+      0
+    );
+
+    const currentValue = totalInvested + profitsTotal; // approximation
+    const roi = totalInvested > 0 ? (profitsTotal / totalInvested) * 100 : 0;
+
     return {
       totalInvested,
-      profitValue,
-      investmentsCount: investments.length,
+      currentValue,
+      roi,
+      profits: profitsTotal,
     };
-  }, [investments, profits]);
+  }, [investments, profitsRows]);
 
   return (
     <div className="container">
@@ -70,51 +93,54 @@ export default function InvestorDashboard() {
       <div style={{ height: 16 }} />
 
       {error ? <div className="alert err">{error}</div> : null}
-      <DashboardStats loading={loading} stats={stats} />
+      <InvestorKPICards loading={loading} kpis={kpis} />
 
       <div style={{ height: 18 }} />
 
-      {/* Investments Section */}
-      <h3 style={{ margin: '0 0 12px 0' }}>Your Investments</h3>
-      <div className="row">
-        {investments.map((inv) => (
-          <div key={inv.id} className="card" style={{ flex: 1, minWidth: 240 }}>
-            <h4 style={{ marginTop: 0 }}>Deal #{inv.deal_id}</h4>
-            <p>Amount Invested: {inv.amount_invested || inv.amount}</p>
-            <p>Profit: {inv.profit || 0}</p>
-          </div>
-        ))}
-      </div>
-      {!loading && investments.length === 0 ? (
-        <div style={{ color: 'var(--muted)' }}>No investments recorded yet.</div>
-      ) : null}
+      {/* Active Deals + Active Deals table */}
+      <ActiveDeals investments={investments} loading={loading} />
 
       <div style={{ height: 18 }} />
 
-      {/* Profit Summary */}
-      <div className="card">
-        <h3>Total Profit</h3>
-        <p style={{ fontSize: 18, fontWeight: 'bold', color: 'green' }}>
-          {stats.profitValue}
-        </p>
-      </div>
-
-      <div style={{ height: 18 }} />
-
-      {/* Deals Section */}
+      {/* Deals (Open to invest) */}
       <h3 style={{ margin: '0 0 12px 0' }}>Available Deals</h3>
       {dealsError ? <div className="alert err">{dealsError}</div> : null}
       {dealsLoading ? <div>Loading deals...</div> : null}
 
       <div className="row">
         {deals.map((d) => (
-          <DealCrad key={d._id || d.id} deal={d} />
+          <DealCrad key={d._id || d.id || d.deal_id} deal={d} />
         ))}
       </div>
 
       {!dealsLoading && deals.length === 0 ? (
         <div style={{ color: 'var(--muted)' }}>No deals found.</div>
       ) : null}
+
+      <div style={{ height: 18 }} />
+
+      {/* Profit Trends */}
+      <ProfitTrends />
+
+      <div style={{ height: 18 }} />
+
+      {/* Investment History */}
+      <InvestmentHistory investments={investments} loading={loading} />
+
+      <div style={{ height: 18 }} />
+
+      {/* Notifications */}
+      <Notifications />
+
+      <div style={{ height: 18 }} />
+
+      {/* Diversification */}
+      <Diversification />
+
+      <div style={{ height: 18 }} />
+
+      {/* Inbox/Support */}
+      <InboxSupport />
     </div>
   );
 }
