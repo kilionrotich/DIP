@@ -323,12 +323,14 @@ export default function AdminDashboard() {
         {/* Navigation */}
         <div style={{ marginTop: 14 }}>
           <SidebarSectionTitle>Navigation</SidebarSectionTitle>
-          {[
+          {[ 
             { key: 'active-deals', label: 'Active Deals' },
             { key: 'create-deal', label: 'Create Deal' },
+            { key: 'messages', label: 'Messages' },
             { key: 'investors', label: 'Investors' },
             { key: 'reports', label: 'Reports' },
           ].map((item) => (
+
 
             <button
               key={item.key}
@@ -380,6 +382,7 @@ export default function AdminDashboard() {
         <div style={{ height: 18 }} />
 
         {activeTab === 'active-deals' ? (
+
           <>
             <h3 style={{ margin: '0 0 12px 0' }}>Active Deals</h3>
             {activeDealsError ? <div className="alert err">{activeDealsError}</div> : null}
@@ -549,7 +552,53 @@ export default function AdminDashboard() {
           </div>
         ) : null}
 
+        {activeTab === 'messages' ? (
+          <>
+            <h3 style={{ margin: '0 0 12px 0' }}>Messages & Replies</h3>
+            <div className="card">
+              <div style={{ color: 'var(--muted)', marginBottom: 10 }}>
+                Coming soon — inbox/reply backend endpoints not implemented in this repo.
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 280, borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: 12 }}>
+                  <div style={{ fontWeight: 900, marginBottom: 10, color: 'var(--text)' }}>Received</div>
+
+                  {[
+                    { from: 'investor1@example.com', msg: 'Hi, I need an update on deal progress.' },
+                    { from: 'investor2@example.com', msg: 'Can I download my receipt for the last investment?' },
+                  ].map((m, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '10px 0',
+                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      <div style={{ fontWeight: 900 }}>{m.from}</div>
+                      <div style={{ color: 'var(--muted)', marginTop: 4, lineHeight: 1.35 }}>{m.msg}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 280 }}>
+                  <div style={{ fontWeight: 900, marginBottom: 10, color: 'var(--text)' }}>Reply</div>
+                  <textarea className="input" rows={4} placeholder="Type your reply… (disabled until backend is ready)" disabled style={{ resize: 'vertical' }} />
+                  <div style={{ height: 12 }} />
+                  <button className="btn primary" type="button" disabled>
+                    Send Reply
+                  </button>
+                  <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
+                    Wire this to an endpoint like POST /api/messages/:threadId/reply.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : null}
+
         {activeTab === 'activity-log' ? (
+
           <>
             <h3 style={{ margin: '0 0 12px 0' }}>Activity Log</h3>
             {auditLogsError ? <div className="alert err">{auditLogsError}</div> : null}
