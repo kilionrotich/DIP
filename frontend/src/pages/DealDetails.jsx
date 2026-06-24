@@ -4,6 +4,8 @@ import useAuth from '../hooks/useAuth';
 import { getDealById } from '../services/dealService';
 import { commitInvestment } from '../services/investmentService';
 import InvestmentForm from '../components/InvestmentForm';
+import api from '../services/api';
+
 
 export default function DealDeatails() {
   const { id } = useParams();

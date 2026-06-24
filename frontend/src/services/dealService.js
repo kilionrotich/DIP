@@ -16,6 +16,21 @@ export async function createDeal(payload) {
   return data;
 }
 
+export async function getActiveDeals() {
+  const { data } = await api.get('/api/deals/active');
+  return data;
+}
+
+export async function updateDeal(dealId, payload) {
+  const { data } = await api.put(`/api/deals/${dealId}`, payload);
+  return data;
+}
+
+export async function cancelDeal(dealId, { hardDelete = false } = {}) {
+  const { data } = await api.post(`/api/deals/${dealId}/cancel`, { hardDelete });
+  return data;
+}
+
 export async function verifyPayment(investmentIdOrProofId) {
   // Backend may differ; keep flexible by sending id
   const { data } = await api.post(`/api/payments/verify`, { id: investmentIdOrProofId });

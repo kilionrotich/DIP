@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import useAuth from '../hooks/useAuth';
 import api from '../services/api';
 import DashboardStats from '../components/DashboardStats';
+import { getActiveDeals, cancelDeal, updateDeal } from '../services/dealService';
+import AdminDealCard from '../components/AdminDealCard';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -71,6 +73,83 @@ export default function AdminDashboard() {
     }
   };
 
+  // Active deals section
+  const [activeDeals, setActiveDeals] = useState([]);
+  const [activeDealsLoading, setActiveDealsLoading] = useState(false);
+  const [activeDealsError, setActiveDealsError] = useState(null);
+
+  const [editingDeal, setEditingDeal] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    amount_required: '',
+    expected_return: '',
+    start_date: '',
+    end_date: '',
+  });
+
+  async function fetchActiveDeals() {
+    setActiveDealsLoading(true);
+    setActiveDealsError(null);
+    try {
+      const res = await getActiveDeals();
+      setActiveDeals(Array.isArray(res) ? res : res?.deals || []);
+    } catch (e) {
+      setActiveDealsError(e?.response?.data?.error || e?.message || 'Failed to load active deals');
+    } finally {
+      setActiveDealsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchActiveDeals();
+  }, []);
+
+  useEffect(() => {
+    if (!editingDeal) return;
+    setEditForm({
+      title: editingDeal.title ?? '',
+      description: editingDeal.description ?? '',
+      amount_required: editingDeal.amount_required ?? '',
+      expected_return: editingDeal.expected_return ?? '',
+      start_date: editingDeal.start_date
+        ? new Date(editingDeal.start_date).toISOString().slice(0, 10)
+        : '',
+      end_date: editingDeal.end_date
+        ? new Date(editingDeal.end_date).toISOString().slice(0, 10)
+        : '',
+    });
+  }, [editingDeal]);
+
+  async function onCancelDeal(deal) {
+    setMessage(null);
+    setError(null);
+    try {
+      const dealId = deal?._id || deal?.deal_id || deal?.id;
+      await cancelDeal(dealId, { hardDelete: false });
+      setMessage('Deal cancelled successfully');
+      setEditingDeal(null);
+      await fetchActiveDeals();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to cancel deal');
+    }
+  }
+
+  async function onSaveEdit(e) {
+    e.preventDefault();
+    setMessage(null);
+    setError(null);
+    try {
+      const dealId = editingDeal?._id || editingDeal?.deal_id || editingDeal?.id;
+      await updateDeal(dealId, editForm);
+      setMessage('Deal updated successfully');
+      setEditingDeal(null);
+      await fetchActiveDeals();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to update deal');
+    }
+  }
+
   return (
     <div className="container">
       <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
@@ -92,7 +171,11 @@ export default function AdminDashboard() {
       {/* Deal Form */}
       <div className="card">
         <h3>Create Deal</h3>
-        <form onSubmit={handleDealSubmit}>
+        <form
+          onSubmit={(e) => {
+            handleDealSubmit(e).then(() => fetchActiveDeals());
+          }}
+        >
           <input placeholder="Title" onChange={e => setDealForm({ ...dealForm, title: e.target.value })}/>
           <textarea placeholder="Description" onChange={e => setDealForm({ ...dealForm, description: e.target.value })}/>
           <input type="number" placeholder="Amount Required" onChange={e => setDealForm({ ...dealForm, amount_required: e.target.value })}/>
@@ -102,6 +185,51 @@ export default function AdminDashboard() {
           <button type="submit">Create Deal</button>
         </form>
       </div>
+
+      {/* Active Deals Section */}
+      <div style={{ height: 18 }} />
+      <h3 style={{ margin: '0 0 12px 0' }}>Active Deals</h3>
+      {activeDealsError ? <div className="alert err">{activeDealsError}</div> : null}
+      {activeDealsLoading ? <div>Loading active deals...</div> : null}
+
+      <div className="row">
+        {activeDeals.map((d) => (
+          <AdminDealCard
+            key={d.deal_id || d._id || d.id}
+            deal={d}
+            onCancel={onCancelDeal}
+            onEdit={(deal) => setEditingDeal(deal)}
+          />
+        ))}
+      </div>
+
+      {!activeDealsLoading && activeDeals.length === 0 ? (
+        <div style={{ color: 'var(--muted)' }}>No active deals.</div>
+      ) : null}
+
+      {editingDeal ? (
+        <div style={{ height: 18 }} />
+      ) : null}
+
+      {/* Edit Deal */}
+      {editingDeal ? (
+        <div className="card">
+          <h3>Edit Deal</h3>
+          {error ? <div className="alert err">{error}</div> : null}
+          <form onSubmit={onSaveEdit}>
+            <input placeholder="Title" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
+            <textarea placeholder="Description" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
+            <input type="number" placeholder="Amount Required" value={editForm.amount_required} onChange={(e) => setEditForm({ ...editForm, amount_required: e.target.value })} />
+            <input type="number" placeholder="Expected Return" value={editForm.expected_return} onChange={(e) => setEditForm({ ...editForm, expected_return: e.target.value })} />
+            <input type="date" placeholder="Start Date" value={editForm.start_date} onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })} />
+            <input type="date" placeholder="End Date" value={editForm.end_date} onChange={(e) => setEditForm({ ...editForm, end_date: e.target.value })} />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
+              <button className="btn primary" type="submit">Save</button>
+              <button className="btn" type="button" onClick={() => setEditingDeal(null)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       {/* Investment Form */}
       <div className="card">
