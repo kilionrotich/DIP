@@ -74,6 +74,19 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
 // Investors fetch all deals (protected)
 router.get('/', verifyToken, getDeals);
 
+// Fetch single deal (used by DealDetails)
+router.get('/:dealId', verifyToken, async (req, res) => {
+  try {
+    const { dealId } = req.params;
+    const Deal = (await import('../models/Deal.js')).default;
+    const deal = await Deal.findByPk(dealId);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+    return res.json(deal);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 // Admin: fetch active deals
 router.get('/active', verifyToken, isAdminOrSuperAdmin, getActiveDeals);
 
@@ -84,4 +97,5 @@ router.put('/:dealId', verifyToken, isAdminOrSuperAdmin, updateDeal);
 router.post('/:dealId/cancel', verifyToken, isAdminOrSuperAdmin, cancelDeal);
 
 export default router;
+
 
