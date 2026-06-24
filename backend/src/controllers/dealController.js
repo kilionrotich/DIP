@@ -25,12 +25,22 @@ export async function createDeal(req, res) {
 // Get all deals (Investors/Admin)
 export async function getDeals(req, res) {
   try {
-    const deals = await Deal.findAll();
+    const { status } = req.query;
+
+    const where = {};
+    if (status) where.status = status;
+
+    const deals = await Deal.findAll({
+      where: Object.keys(where).length ? where : undefined,
+      order: [['deal_id', 'DESC']],
+    });
+
     res.json(deals);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
+
 
 // Get active/open deals
 export async function getActiveDeals(req, res) {

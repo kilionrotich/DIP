@@ -17,9 +17,10 @@ export async function createDeal(payload) {
 }
 
 export async function getActiveDeals() {
-  const { data } = await api.get('/api/deals/active');
+  const { data } = await api.get('/api/deals?status=open');
   return data;
 }
+
 
 export async function updateDeal(dealId, payload) {
   const { data } = await api.put(`/api/deals/${dealId}`, payload);
