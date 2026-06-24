@@ -279,19 +279,20 @@ export default function AdminDashboard() {
 
             <div className="card" style={{ padding: 14, marginBottom: 12 }}>
               <SidebarSectionTitle>Account Settings</SidebarSectionTitle>
-              <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 6 }}>Change password</div>
-              <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 6 }}>Update email</div>
-              <div style={{ color: 'var(--muted)', fontSize: 13 }}>Notification preferences</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button className="btn" type="button" onClick={() => setActiveTab('account-settings')}>
+                  Profile Overview
+                </button>
+              </div>
+              <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
+                Account settings controls are not wired yet.
+              </div>
             </div>
 
-            <div className="card" style={{ padding: 14, marginBottom: 12 }}>
-              <SidebarSectionTitle>System Settings</SidebarSectionTitle>
-              <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 6 }}>Configure platform options</div>
-              <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 6 }}>API keys</div>
-              <div style={{ color: 'var(--muted)', fontSize: 13 }}>Environment variables</div>
-            </div>
+
 
             <div className="card" style={{ padding: 14, marginBottom: 12 }}>
+
               <SidebarSectionTitle>Activity Log</SidebarSectionTitle>
               <button
                 type="button"
@@ -328,6 +329,7 @@ export default function AdminDashboard() {
             { key: 'investors', label: 'Investors' },
             { key: 'reports', label: 'Reports' },
           ].map((item) => (
+
             <button
               key={item.key}
               type="button"

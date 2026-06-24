@@ -38,7 +38,7 @@ export default function SuperAdminDashboard() {
 
   const canSubmit = useMemo(() => {
     if (!form.username || !form.email) return false;
-    if (!editId && !form.password) return false; // create requires password
+    if (!editId && !form.password) return false;
     return true;
   }, [form, editId]);
 
@@ -49,17 +49,12 @@ export default function SuperAdminDashboard() {
 
     try {
       if (editId) {
-        // update
-        const payload = {
-          username: form.username,
-          email: form.email,
-        };
+        const payload = { username: form.username, email: form.email };
         if (form.password) payload.password = form.password;
 
         await api.put(`/api/auth/admins/${editId}`, payload);
         setMessage('Admin updated successfully');
       } else {
-        // create
         await api.post('/api/auth/admins', form);
         setMessage('Admin created successfully');
       }
@@ -120,6 +115,7 @@ export default function SuperAdminDashboard() {
 
       <div style={{ height: 16 }} />
 
+      {/* Admin create/update */}
       <div className="card">
         <h3>{editId ? 'Edit Admin' : 'Create Admin'}</h3>
         <form onSubmit={onSubmit}>
@@ -170,14 +166,12 @@ export default function SuperAdminDashboard() {
 
       <div style={{ height: 16 }} />
 
+      {/* Existing admins */}
       <div className="card">
         <h3>Existing Admins</h3>
 
         {loading ? <div>Loading...</div> : null}
-
-        {!loading && admins.length === 0 ? (
-          <div style={{ color: 'var(--muted)' }}>No admins found.</div>
-        ) : null}
+        {!loading && admins.length === 0 ? <div style={{ color: 'var(--muted)' }}>No admins found.</div> : null}
 
         <div className="row">
           {admins.map((a) => (
@@ -195,6 +189,15 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* System settings placeholder (super-admin only) */}
+      <div style={{ height: 16 }} />
+      <div className="card">
+        <h3>System Settings</h3>
+        <div style={{ color: 'var(--muted)' }}>
+          System configuration is restricted to Super Admin.
         </div>
       </div>
     </div>
