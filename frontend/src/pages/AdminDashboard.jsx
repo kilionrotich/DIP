@@ -42,6 +42,15 @@ export default function AdminDashboard() {
     try {
       await api.post('/api/deals', dealForm);
       setMessage('Deal created successfully!');
+      // clear form to prevent duplicate submissions
+      setDealForm({
+        title: '',
+        description: '',
+        amount_required: '',
+        expected_return: '',
+        start_date: '',
+        end_date: '',
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'Error creating deal');
     }

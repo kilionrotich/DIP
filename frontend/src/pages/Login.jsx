@@ -10,9 +10,11 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -67,10 +69,22 @@ export default function Login() {
               className="input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               required
             />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+              <input
+                id="show-password"
+                type="checkbox"
+                checked={showPassword}
+                onChange={(e) => setShowPassword(e.target.checked)}
+              />
+              <label htmlFor="show-password" style={{ cursor: 'pointer' }}>
+                Show password
+              </label>
+            </div>
           </div>
+
 
           <button
             className="btn primary"

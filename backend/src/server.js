@@ -14,6 +14,9 @@ import dealRoutes from './routes/dealRoutes.js';
 import investmentRoutes from './routes/investmentRoutes.js';
 import profitRoutes from './routes/profitRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import investorRoutes from './routes/investorRoutes.js';
+import auditRoutes from './routes/auditRoutes.js';
+
 
 // Initialize app
 const app = express();
@@ -42,6 +45,9 @@ app.use('/api/deals', dealRoutes);
 app.use('/api/investments', investmentRoutes);
 app.use('/api/profits', profitRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/investors', investorRoutes);
+app.use('/api/audit-logs', auditRoutes);
+
 
 // Default route
 app.get('/', (req, res) => {
