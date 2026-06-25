@@ -247,7 +247,7 @@ export default function AdminDashboard() {
   }, [investors, investorQuery]);
 
   return (
-    <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
+    <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', padding: '0 8px' }}>
       {/* Sidebar */}
       <div
         style={{
