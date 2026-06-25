@@ -16,7 +16,17 @@ import {
 
 export default function InvestorDashboard() {
   const { user, logout } = useAuth();
-  const { deals, loading: dealsLoading, error: dealsError } = useDeals();
+  const [dealFilters, setDealFilters] = useState({
+    status: 'open',
+    sector: '',
+    roi_min: '',
+    roi_max: '',
+    deadline: '',
+    risk: '',
+  });
+
+  const { deals, loading: dealsLoading, error: dealsError } = useDeals(dealFilters);
+
 
   const [investments, setInvestments] = useState([]);
   const [profitsRows, setProfitsRows] = useState([]);
@@ -104,6 +114,73 @@ export default function InvestorDashboard() {
 
       {/* Deals (Open to invest) */}
       <h3 style={{ margin: '0 0 12px 0' }}>Available Deals</h3>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
+          <div className="form-group" style={{ minWidth: 180 }}>
+            <label className="label">Sector</label>
+            <input
+              className="input"
+              value={dealFilters.sector}
+              onChange={(e) => setDealFilters((p) => ({ ...p, sector: e.target.value }))}
+              placeholder="(optional)"
+            />
+          </div>
+
+          <div className="form-group" style={{ minWidth: 160 }}>
+            <label className="label">ROI min (%)</label>
+            <input
+              className="input"
+              type="number"
+              value={dealFilters.roi_min}
+              onChange={(e) => setDealFilters((p) => ({ ...p, roi_min: e.target.value }))}
+              placeholder="(optional)"
+            />
+          </div>
+
+          <div className="form-group" style={{ minWidth: 160 }}>
+            <label className="label">ROI max (%)</label>
+            <input
+              className="input"
+              type="number"
+              value={dealFilters.roi_max}
+              onChange={(e) => setDealFilters((p) => ({ ...p, roi_max: e.target.value }))}
+              placeholder="(optional)"
+            />
+          </div>
+
+          <div className="form-group" style={{ minWidth: 200 }}>
+            <label className="label">Deadline (on/before)</label>
+            <input
+              className="input"
+              type="date"
+              value={dealFilters.deadline}
+              onChange={(e) => setDealFilters((p) => ({ ...p, deadline: e.target.value }))}
+            />
+          </div>
+
+          <div className="form-group" style={{ minWidth: 160 }}>
+            <label className="label">Risk</label>
+            <select
+              className="input"
+              value={dealFilters.risk}
+              onChange={(e) => setDealFilters((p) => ({ ...p, risk: e.target.value }))}
+            >
+              <option value="">(optional)</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: -6, marginBottom: 12 }}>
+        Note: filtering is currently implemented for <b>deadline</b> and <b>ROI</b> using existing deal fields.
+        <span style={{ display: 'inline-block', width: 8 }} />Sector/Risk filters are UI-only until the backend stores those values.
+      </div>
+
+
       {dealsError ? <div className="alert err">{dealsError}</div> : null}
       {dealsLoading ? <div>Loading deals...</div> : null}
 
@@ -112,6 +189,7 @@ export default function InvestorDashboard() {
           <DealCrad key={d._id || d.id || d.deal_id} deal={d} />
         ))}
       </div>
+
 
       {!dealsLoading && deals.length === 0 ? (
         <div style={{ color: 'var(--muted)' }}>No deals found.</div>

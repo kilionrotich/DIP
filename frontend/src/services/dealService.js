@@ -1,7 +1,18 @@
 import api from './api';
 
-export async function getDeals() {
-  const { data } = await api.get('/api/deals');
+function toQuery(filters = {}) {
+  const q = {};
+  if (filters.status) q.status = filters.status;
+  if (filters.sector) q.sector = filters.sector;
+  if (filters.roi_min !== undefined && filters.roi_min !== '') q.roi_min = filters.roi_min;
+  if (filters.roi_max !== undefined && filters.roi_max !== '') q.roi_max = filters.roi_max;
+  if (filters.deadline) q.deadline = filters.deadline;
+  if (filters.risk) q.risk = filters.risk;
+  return q;
+}
+
+export async function getDeals(filters = {}) {
+  const { data } = await api.get('/api/deals', { params: toQuery(filters) });
   return data;
 }
 
@@ -37,4 +48,5 @@ export async function verifyPayment(investmentIdOrProofId) {
   const { data } = await api.post(`/api/payments/verify`, { id: investmentIdOrProofId });
   return data;
 }
+
 

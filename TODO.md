@@ -1,19 +1,30 @@
-# Deal Investment Platform - Implementation TODO
+# TODO - Investor Dashboard Completion (Option 2: incremental)
 
-- [ ] Step 1: Refactor InvestorDashboard into requested core sections (KPIs, Active Deals, Profit Trends area, Investment History, Notifications, Diversification, Communication/Inbox).
-- [ ] Step 2: Add missing frontend components for each section (InvestorKPICards, ActiveDeals, ProfitTrends, InvestmentHistory, Notifications, Diversification, InboxSupport).
-- [ ] Step 3: Compute KPIs using existing backend endpoints:
-  - Total Invested from `/api/investments` (sum `amount_invested`).
-  - Profits from `/api/profits` (sum `total_profit`).
-  - ROI as `profits / totalInvested`.
-  - Current Value approximated as `totalInvested + profits`.
-- [ ] Step 4: Ensure sections degrade gracefully with “Coming soon / no data available” where backend data is missing.
-- [ ] Step 5: Keep existing “Available Deals” functionality using `useDeals()` + `DealCrad`.
-- [x] Step 1: Refactor InvestorDashboard into requested core sections (KPIs, Active Deals, Profit Trends area, Investment History, Notifications, Diversification, Communication/Inbox).
-- [x] Step 2: Add missing frontend components for each section (InvestorKPICards, ActiveDeals, ProfitTrends, InvestmentHistory, Notifications, Diversification, InboxSupport).
-- [x] Step 3: Compute KPIs using existing backend endpoints.
-- [ ] Step 4: Ensure sections degrade gracefully with “Coming soon / no data available” where backend data is missing.
-- [ ] Step 5: Keep existing “Available Deals” functionality using `useDeals()` + `DealCrad`.
-- [ ] Step 6: Run frontend build/lint (if available) and ensure no runtime errors.
+## Phase 1 — Deal browsing + invest/proof flow (Investor -> pending -> Admin verify -> active)
+- [x] Add/confirm investor-facing “Available Deals” backend endpoint with filters: sector, ROI, deadline, risk.
+- [x] Wire investor “Available Deals” filters UI + client request params.
 
+
+- [ ] Ensure frontend “Available Deals” uses the filtered deal endpoint.
+- [ ] Add investor endpoint to create an investment and upload payment proof (or split: create investment + upload proof).
+- [ ] Add frontend invest flow UI (deal select -> amount -> payment method -> upload proof).
+- [ ] Ensure admin verification updates Investment status to `active` (already partially implemented) and creates an audit log.
+- [ ] Validate end-to-end: investor invests -> proof pending -> admin verify -> active.
+
+## Phase 2 — Portfolio analytics
+- [ ] Replace KPI approximation with backend-backed aggregation (total invested, current value, ROI).
+- [ ] Implement profit time-series endpoint; update ProfitTrends component to render real chart.
+- [ ] Implement diversification aggregation endpoint; replace placeholders.
+- [ ] Ensure InvestmentHistory shows correct outcomes and enables receipt download when available.
+
+## Phase 3 — Notifications + communication
+- [ ] Implement backend notification/events model + endpoints for investor.
+- [ ] Replace Notifications placeholder with real data (polling/SSE).
+- [ ] Implement Inbox/Support/dispute tickets model + endpoints.
+- [ ] Replace InboxSupport placeholder with real ticket creation + listing.
+
+## Phase 4 — Receipts / reports
+- [ ] Implement backend receipt/report generation endpoint(s) for each investment.
+- [ ] Implement frontend download/print for receipts.
+- [ ] Validate downloads.
 
