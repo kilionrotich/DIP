@@ -252,7 +252,7 @@ export default function AdminDashboard() {
 
       <div
         style={{
-          width: sidebarExpanded ? 300 : 88,
+          width: sidebarExpanded ? 'calc(50vw - 8px)' : 88,
           transition: 'width 160ms ease',
           position: 'sticky',
           top: 16,
@@ -263,6 +263,8 @@ export default function AdminDashboard() {
           borderRadius: 12,
           height: 'calc(100vh - 32px)',
           overflow: 'auto',
+          maxWidth: 480,
+          minWidth: sidebarExpanded ? 260 : 88,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarExpanded ? 'space-between' : 'center' }}>
@@ -372,7 +374,14 @@ export default function AdminDashboard() {
       {/* Main panel */}
       <div
         className="container"
-        style={{ padding: 0, maxWidth: 820, transition: 'opacity 180ms ease, transform 180ms ease' }}
+        style={{
+          padding: 0,
+          maxWidth: 820,
+          transition: 'opacity 180ms ease, transform 180ms ease',
+          flex: 1,
+          minWidth: 0,
+          overflow: 'auto',
+        }}
       >
 
         {message ? <div className="alert ok">{message}</div> : null}
