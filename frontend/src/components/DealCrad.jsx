@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 
 export default function DealCrad({ deal }) {
   const navigate = useNavigate();
-  const id = deal?._id || deal?.id;
+  const id = deal?._id || deal?.id || deal?.deal_id;
 
   const title = deal?.title || deal?.name || 'Untitled deal';
   const description = deal?.description || '';
+
 
   return (
     <div className="card" style={{ flex: '0 0 320px', minWidth: 280 }}>
