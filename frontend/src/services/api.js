@@ -13,6 +13,7 @@ if (process.env.NODE_ENV === 'development') {
 
 
 api.interceptors.request.use((config) => {
+
   const token = localStorage.getItem('token');
   if (token) {
     config.headers = config.headers || {};

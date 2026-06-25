@@ -6,6 +6,8 @@ import { getActiveDeals, cancelDeal, updateDeal } from '../services/dealService'
 import { getInvestors } from '../services/investorService';
 import { getRecentAuditLogs } from '../services/auditService';
 import AdminDealCard from '../components/AdminDealCard';
+import { getInboxMessages, sendMessage } from '../services/messageService';
+
 
 function Avatar({ name, role, photoUrl }) {
   const initials = useMemo(() => {
@@ -95,8 +97,17 @@ export default function AdminDashboard() {
   const [investorsError, setInvestorsError] = useState(null);
   const [investorQuery, setInvestorQuery] = useState('');
 
+  // Messaging
+  const [inbox, setInbox] = useState([]);
+  const [inboxLoading, setInboxLoading] = useState(false);
+  const [inboxError, setInboxError] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [replyBody, setReplyBody] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+
   // Activity Log
   const [auditLogs, setAuditLogs] = useState([]);
+
   const [auditLogsLoading, setAuditLogsLoading] = useState(false);
   const [auditLogsError, setAuditLogsError] = useState(null);
 
@@ -146,7 +157,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === 'investors' && !investorsLoading && investors.length === 0) fetchInvestors();
     if (activeTab === 'activity-log' && !auditLogsLoading && auditLogs.length === 0) fetchAuditLogs();
+    if (activeTab === 'messages') loadInbox();
   }, [activeTab]);
+
 
   useEffect(() => {
     if (!editingDeal) return;
@@ -564,34 +577,84 @@ export default function AdminDashboard() {
                 <div style={{ flex: 1, minWidth: 280, borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: 12 }}>
                   <div style={{ fontWeight: 900, marginBottom: 10, color: 'var(--text)' }}>Received</div>
 
-                  {[
-                    { from: 'investor1@example.com', msg: 'Hi, I need an update on deal progress.' },
-                    { from: 'investor2@example.com', msg: 'Can I download my receipt for the last investment?' },
-                  ].map((m, idx) => (
+                  {inboxLoading ? <div style={{ color: 'var(--muted)' }}>Loading inbox...</div> : null}
+                  {inboxError ? <div className="alert err">{inboxError}</div> : null}
+                  {!inboxLoading && (!inbox || inbox.length === 0) ? (
+                    <div style={{ color: 'var(--muted)' }}>No messages yet.</div>
+                  ) : null}
+
+                  {(inbox || []).slice(0, 10).map((m) => (
                     <div
-                      key={idx}
+                      key={m.message_id || m.id}
                       style={{
                         padding: '10px 0',
                         borderBottom: '1px solid rgba(255,255,255,0.06)',
                       }}
                     >
-                      <div style={{ fontWeight: 900 }}>{m.from}</div>
-                      <div style={{ color: 'var(--muted)', marginTop: 4, lineHeight: 1.35 }}>{m.msg}</div>
+                      <div style={{ fontWeight: 900 }}>{m.sender?.username || m.sender?.email || 'Investor'}</div>
+                      <div style={{ color: 'var(--muted)', marginTop: 6, fontWeight: 700 }}>{m.subject || 'No subject'}</div>
+                      <div style={{ color: 'var(--muted)', marginTop: 4, lineHeight: 1.35 }}>{m.body}</div>
+
+                      <div style={{ marginTop: 8 }}>
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => setSelectedMessage(m)}
+                          style={{ padding: '8px 10px' }}
+                        >
+                          Reply to this
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 <div style={{ flex: 1, minWidth: 280 }}>
                   <div style={{ fontWeight: 900, marginBottom: 10, color: 'var(--text)' }}>Reply</div>
-                  <textarea className="input" rows={4} placeholder="Type your reply… (disabled until backend is ready)" disabled style={{ resize: 'vertical' }} />
-                  <div style={{ height: 12 }} />
-                  <button className="btn primary" type="button" disabled>
-                    Send Reply
-                  </button>
-                  <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
-                    Wire this to an endpoint like POST /api/messages/:threadId/reply.
-                  </div>
+
+                  {selectedMessage ? (
+                    <>
+                      <div style={{ color: 'var(--muted)', fontSize: 12, marginBottom: 10 }}>
+                        Replying to: <b>{selectedMessage.sender?.username || selectedMessage.sender?.email || 'Investor'}</b>
+                      </div>
+
+                      <textarea
+                        className="input"
+                        rows={4}
+                        value={replyBody}
+                        onChange={(e) => setReplyBody(e.target.value)}
+                        placeholder="Type your reply…"
+                        style={{ resize: 'vertical' }}
+                      />
+                      <div style={{ height: 12 }} />
+                      <button className="btn primary" type="button" onClick={async () => {
+                        try {
+                          setSendingReply(true);
+                          setError(null);
+                          if (!selectedMessage) throw new Error('Select a message');
+                          if (!replyBody.trim()) throw new Error('Reply is required');
+                          await sendMessage({ receiver_id: selectedMessage.sender_id ?? selectedMessage.sender?.user_id, subject: 'Re: ' + (selectedMessage.subject || ''), body: replyBody });
+                          setReplyBody('');
+                          setSelectedMessage(null);
+                          await loadInbox();
+                        } catch (e) {
+                          setError(e?.response?.data?.error || e?.message || 'Failed to send reply');
+                        } finally {
+                          setSendingReply(false);
+                        }
+                      }} disabled={sendingReply || !replyBody.trim()}
+                      >
+                        {sendingReply ? 'Sending...' : 'Send Reply'}
+                      </button>
+                      <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
+                        Saved to DB and will appear in investor inbox via polling.
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ color: 'var(--muted)' }}>Select a message to reply.</div>
+                  )}
                 </div>
+
               </div>
             </div>
           </>

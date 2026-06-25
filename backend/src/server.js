@@ -16,6 +16,8 @@ import profitRoutes from './routes/profitRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import investorRoutes from './routes/investorRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
+
 
 
 // Initialize app
@@ -47,6 +49,8 @@ app.use('/api/profits', profitRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/investors', investorRoutes);
 app.use('/api/audit-logs', auditRoutes);
+app.use('/api/messages', messageRoutes);
+
 
 
 // Default route
