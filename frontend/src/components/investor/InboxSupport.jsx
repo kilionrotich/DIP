@@ -22,8 +22,9 @@ export default function InboxSupport() {
   const lastAdminSenderId = useMemo(() => {
     // infer last admin sender from inbox messages
     const firstAdmin = (inbox || []).find((m) => m?.sender?.role === 'admin' || m?.sender?.role === 'super_admin');
-    return firstAdmin?.sender?.user_id || firstAdmin?.sender_id;
+    return firstAdmin?.sender?.user_id ?? firstAdmin?.sender_id;
   }, [inbox]);
+
 
   async function loadInbox() {
     if (!myId) return;
