@@ -16,8 +16,11 @@ export default function DealDeatails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [commitSuccess, setCommitSuccess] = useState(null);
-  const [commitError, setCommitError] = useState(null);
+  // commit workflow
+  const [commitStatus, setCommitStatus] = useState(null); // { type: 'ok'|'err'|'info', text }
+  const [submitted, setSubmitted] = useState(false);
+
+
 
   useEffect(() => {
     let mounted = true;
@@ -46,16 +49,18 @@ export default function DealDeatails() {
   }, [deal]);
 
   async function onCommit(payload) {
-    setCommitSuccess(null);
-    setCommitError(null);
+    setCommitStatus(null);
+    setSubmitted(false);
     try {
       await commitInvestment(id, payload);
-      setCommitSuccess('Investment committed successfully');
-      setTimeout(() => navigate('/dashboard'), 500);
+      setSubmitted(true);
+      setCommitStatus({ type: 'ok', text: 'Investment submitted successfully. Awaiting verification.' });
+      // keep user on page to show workflow
     } catch (e) {
-      setCommitError(e?.response?.data?.message || e?.message || 'Failed to commit investment');
+      setCommitStatus({ type: 'err', text: e?.response?.data?.message || e?.message || 'Failed to commit investment' });
     }
   }
+
 
   return (
     <div className="container">
@@ -88,8 +93,16 @@ export default function DealDeatails() {
 
           <div className="card" style={{ flex: 1, minWidth: 320 }}>
             <h3 style={{ marginTop: 0 }}>Commit Investment</h3>
-            {commitSuccess ? <div className="alert ok">{commitSuccess}</div> : null}
-            {commitError ? <div className="alert err">{commitError}</div> : null}
+
+            {commitStatus?.type === 'ok' ? <div className="alert ok">{commitStatus.text}</div> : null}
+            {commitStatus?.type === 'err' ? <div className="alert err">{commitStatus.text}</div> : null}
+
+            {submitted ? (
+              <div style={{ marginTop: 12 }}>
+                <div className="alert ok">Awaiting verification by admin. You can submit again if needed.</div>
+              </div>
+            ) : null}
+
 
             <InvestmentForm dealId={id} user={user} onSubmit={onCommit} />
           </div>

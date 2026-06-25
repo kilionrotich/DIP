@@ -71,7 +71,11 @@ export default function InvestmentForm({ dealId, user, onSubmit }) {
           value={paymentProofUrl}
           onChange={(e) => setPaymentProofUrl(e.target.value)}
           placeholder="https://..."
+          inputMode="url"
         />
+        <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 8 }}>
+          File upload is not implemented yet; paste a receipt/transaction proof link if available.
+        </div>
       </div>
 
       <div className="form-group">
@@ -83,6 +87,7 @@ export default function InvestmentForm({ dealId, user, onSubmit }) {
           placeholder="e.g. TRX12345"
         />
       </div>
+
 
       <button className="btn primary" disabled={loading} style={{ width: '100%' }} type="submit">
         {loading ? 'Committing...' : `Commit to Deal ${dealId}`}
