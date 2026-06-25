@@ -249,6 +249,7 @@ export default function AdminDashboard() {
   return (
     <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', padding: '0 8px' }}>
       {/* Sidebar */}
+
       <div
         style={{
           width: sidebarExpanded ? 300 : 88,
@@ -369,7 +370,11 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main panel */}
-      <div className="container" style={{ padding: 0, maxWidth: 820 }}>
+      <div
+        className="container"
+        style={{ padding: 0, maxWidth: 820, transition: 'opacity 180ms ease, transform 180ms ease' }}
+      >
+
         {message ? <div className="alert ok">{message}</div> : null}
         {error ? <div className="alert err">{error}</div> : null}
 
