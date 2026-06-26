@@ -30,11 +30,13 @@ export async function createInvestment(req, res) {
 export async function getInvestments(req, res) {
   try {
     const investments = await Investment.findAll({
-      include: [Deal]
+      include: [Deal],
+      order: [['investment_id', 'DESC']],
     });
 
     res.status(200).json({ investments });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    // avoid 400 for server/DB errors; return 500 with error message
+    res.status(500).json({ error: err.message });
   }
 }

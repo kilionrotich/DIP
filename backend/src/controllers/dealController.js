@@ -66,12 +66,14 @@ export async function getDeals(req, res) {
 
     const filtered = deals.filter((d) => {
       // ROI % = (expected_return - amount_required) / amount_required * 100
+      // amount_required may be missing in some seed/data; fallback to fixed_amount if needed.
       const expected = Number(d.expected_return);
-      const required = Number(d.amount_required);
+      const required = Number(d.amount_required ?? d.fixed_amount);
       if (!Number.isFinite(expected) || !Number.isFinite(required) || required <= 0) {
         return roiMin === null && roiMax === null; // keep only if no ROI filter
       }
       const roiPct = ((expected - required) / required) * 100;
+
 
       if (roiMin !== null && roiPct < roiMin) return false;
       if (roiMax !== null && roiPct > roiMax) return false;
