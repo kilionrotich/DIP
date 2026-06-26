@@ -1,6 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
+function formatKES(val) {
+  const n = Number(val);
+  if (!Number.isFinite(n)) return '-';
+  return `${n.toLocaleString()} KES`;
+}
+
+
 export default function DealCrad({ deal }) {
   const navigate = useNavigate();
   const id = deal?._id || deal?.id || deal?.deal_id;
@@ -20,8 +27,12 @@ export default function DealCrad({ deal }) {
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ color: 'var(--muted)', fontSize: 13 }}>Goal</div>
-        <div style={{ fontWeight: 800 }}>{deal?.goal || deal?.target || '-'}</div>
+        <div style={{ fontWeight: 800 }}>
+          {formatKES(deal?.fixed_amount ?? deal?.goal ?? deal?.target ?? deal?.amount_required)}
+
+        </div>
       </div>
+
 
       <div style={{ height: 14 }} />
 

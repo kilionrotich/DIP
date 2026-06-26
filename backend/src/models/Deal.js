@@ -20,6 +20,11 @@ const Deal = sequelize.define('Deal', {
     type: DataTypes.DECIMAL(12, 2),
     allowNull: false,
   },
+  // Fixed amount investors must commit (prevents partial/custom investments)
+  fixed_amount: {
+    type: DataTypes.DECIMAL(12, 2),
+    allowNull: false,
+  },
   expected_return: {
     type: DataTypes.DECIMAL(12, 2),
     allowNull: true,

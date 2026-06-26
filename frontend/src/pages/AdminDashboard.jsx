@@ -431,48 +431,54 @@ export default function AdminDashboard() {
             ) : null}
 
             {editingDeal ? (
-              <div style={{ marginTop: 18 }} />
+              <div style={{ height: 18 }} />
             ) : null}
 
             {editingDeal ? (
-              <div className="card">
+              <div className="card" style={{ background: '#fff', color: '#000' }}>
                 <h3>Edit Deal</h3>
                 {error ? <div className="alert err">{error}</div> : null}
+
                 <form onSubmit={onSaveEdit}>
                   <input
-                    placeholder="Title"
+                    placeholder="Project name"
                     value={editForm.title}
                     onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                   />
+
                   <textarea
                     placeholder="Description"
                     value={editForm.description}
                     onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                   />
+
+                  {/* fixed amount is editable only by Admin */}
+
+
                   <input
                     type="number"
-                    placeholder="Amount Required"
-                    value={editForm.amount_required}
-                    onChange={(e) => setEditForm({ ...editForm, amount_required: e.target.value })}
+                    placeholder="Goal (KES)"
+                    value={editForm.fixed_amount ?? ''}
+                    onChange={(e) => setEditForm({ ...editForm, fixed_amount: e.target.value })}
+                    step="0.01"
+                    min="0"
                   />
-                  <input
-                    type="number"
-                    placeholder="Expected Return"
-                    value={editForm.expected_return}
-                    onChange={(e) => setEditForm({ ...editForm, expected_return: e.target.value })}
-                  />
+
+
                   <input
                     type="date"
                     placeholder="Start Date"
                     value={editForm.start_date}
                     onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
                   />
+
                   <input
                     type="date"
                     placeholder="End Date"
                     value={editForm.end_date}
                     onChange={(e) => setEditForm({ ...editForm, end_date: e.target.value })}
                   />
+
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
                     <button className="btn primary" type="submit">
                       Save
@@ -484,6 +490,7 @@ export default function AdminDashboard() {
                 </form>
               </div>
             ) : null}
+
           </>
         ) : null}
 

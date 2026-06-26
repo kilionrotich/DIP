@@ -4,12 +4,13 @@ import Deal from '../models/Deal.js';
 // Create a new deal (Admin only)
 export async function createDeal(req, res) {
   try {
-    const { title, description, amount_required, expected_return, start_date, end_date, status } = req.body;
+    const { title, description, amount_required, fixed_amount, expected_return, start_date, end_date, status } = req.body;
 
     const deal = await Deal.create({
       title,
       description,
       amount_required,
+      fixed_amount,
       expected_return,
       start_date,
       end_date,
@@ -111,6 +112,7 @@ export async function updateDeal(req, res) {
       description,
       amount_required,
       expected_return,
+      fixed_amount,
       start_date,
       end_date,
     } = req.body;
@@ -125,6 +127,7 @@ export async function updateDeal(req, res) {
       description: description ?? deal.description,
       amount_required: amount_required ?? deal.amount_required,
       expected_return: expected_return ?? deal.expected_return,
+      fixed_amount: fixed_amount ?? deal.fixed_amount,
       start_date: start_date ?? deal.start_date,
       end_date: end_date ?? deal.end_date,
     });

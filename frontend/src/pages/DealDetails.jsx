@@ -89,6 +89,20 @@ export default function DealDeatails() {
                 <div style={{ fontWeight: 800 }}>{deal?.status || '-'}</div>
               </div>
             </div>
+
+            <div style={{ height: 12 }} />
+
+            <div className="row">
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <div style={{ color: 'var(--muted)', fontSize: 13 }}>Required Investment</div>
+                <div style={{ fontWeight: 900 }}>
+                  {deal?.fixed_amount != null && !Number.isNaN(Number(deal.fixed_amount))
+                    ? `${Number(deal.fixed_amount).toLocaleString()} KES`
+                    : '-'}
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <div className="card" style={{ flex: 1, minWidth: 320 }}>
@@ -104,7 +118,8 @@ export default function DealDeatails() {
             ) : null}
 
 
-            <InvestmentForm dealId={id} user={user} onSubmit={onCommit} />
+            <InvestmentForm dealId={id} user={user} fixedAmount={deal?.fixed_amount} onSubmit={onCommit} />
+
           </div>
         </div>
       ) : null}

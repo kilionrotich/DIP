@@ -1,19 +1,9 @@
-# TODO
-
-## Implement enhanced Deal Details responsive page/modal
-- [x] Inspect current `frontend/src/pages/DealDetails.jsx`
-- [x] Inspect `frontend/src/components/InvestmentForm.jsx` and backend deal/payment proof flow
-- [ ] Add full deal meta + responsive modal layout in DealDetails
-- [ ] Add embedded commit + payment proof upload UX + confirmation workflow
-- [ ] Ensure pending/confirmation state after commit
-
-## Admin dashboard mobile/crammed improvements & sidebar UX
-- [x] Adjust spacing/padding in `frontend/src/pages/AdminDashboard.jsx`
-- [ ] Refactor AdminDashboard sidebar navigation so selecting an item expands only that section (smooth transitions) while collapsing others
-- [ ] Ensure transitions feel natural on mobile (sidebar collapse/expand + main content swap)
-
-
-## Build & verification
-- [x] `cd frontend && npm run build`
-- [ ] Re-run build after remaining UI refactors
+- [ ] Backend: add `fixed_amount` to `backend/src/models/Deal.js`
+- [ ] Backend: update `backend/src/controllers/dealController.js` create/update to handle `fixed_amount`
+- [ ] Backend: enforce exact fixed amount + prevent duplicate investments in `backend/src/routes/dealRoutes.js` POST /:dealId/invest
+- [ ] Backend: ensure DealDetails endpoint returns `fixed_amount` (verify existing GET /:dealId)
+- [ ] Frontend: show `Required Investment: X KES` in `frontend/src/pages/DealDetails.jsx`
+- [ ] Frontend: remove custom amount input and make commit use fixed amount in `frontend/src/components/InvestmentForm.jsx`
+- [ ] Frontend: pass fixed amount prop from DealDetails to InvestmentForm
+- [ ] Smoke test: run backend/frontend and verify commit + duplicate prevention
 

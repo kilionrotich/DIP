@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 
-export default function InvestmentForm({ dealId, user, onSubmit }) {
-  const [amount, setAmount] = useState('');
+export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit }) {
   const [commitType, setCommitType] = useState('capital');
 
   // Payment proof (simple: proof URL + transaction id)
   // File upload is not implemented in the current backend.
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [transactionId, setTransactionId] = useState('');
+
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -18,7 +18,8 @@ export default function InvestmentForm({ dealId, user, onSubmit }) {
     setLoading(true);
     try {
       const payload = {
-        amount: Number(amount),
+        // backend enforces fixed amount from the deal record; client sends for completeness only
+        amount: fixedAmount != null ? Number(fixedAmount) : undefined,
         type: commitType,
         investorId: user?._id || user?.id,
 
@@ -40,17 +41,19 @@ export default function InvestmentForm({ dealId, user, onSubmit }) {
       {error ? <div className="alert err">{error}</div> : null}
 
       <div className="form-group">
-        <label className="label">Investment Amount</label>
-        <input
-          className="input"
-          type="number"
-          step="0.01"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          required
-          min="0"
-        />
+        <div className="label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Required Investment</span>
+          <span style={{ fontWeight: 800 }}>
+            {fixedAmount != null && !Number.isNaN(Number(fixedAmount))
+              ? `${Number(fixedAmount).toLocaleString()} KES`
+              : '-'}
+          </span>
+        </div>
+        <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 6 }}>
+          Investment amount is fixed by the deal. You cannot enter a custom amount.
+        </div>
       </div>
+
 
       <div className="form-group">
         <label className="label">Commit Type</label>
@@ -90,8 +93,9 @@ export default function InvestmentForm({ dealId, user, onSubmit }) {
 
 
       <button className="btn primary" disabled={loading} style={{ width: '100%' }} type="submit">
-        {loading ? 'Committing...' : `Commit to Deal ${dealId}`}
+        {loading ? 'Committing...' : `Commit Investment to Deal ${dealId}`}
       </button>
+
     </form>
   );
 }

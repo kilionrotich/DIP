@@ -33,37 +33,61 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
 
     // Support both frontend ({ amount, investorId }) and model fields ({ amount_invested })
     const investor_id = investorId ?? req.user?.id ?? req.user?.user_id ?? req.body.investor_id;
-    const computed_amount_invested = amount_invested ?? amount;
-
 
     // Basic validation
     if (!investor_id) return res.status(400).json({ error: 'Missing investorId/investor_id' });
-    if (!computed_amount_invested) return res.status(400).json({ error: 'Missing amount_invested/amount' });
 
+    const Deal = (await import('../models/Deal.js')).default;
+    const deal = await Deal.findByPk(dealId);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-    // Create investment
+    // Fixed amount enforcement: ignore client-provided amount, always use deal.fixed_amount
+    const fixed_amount = deal.fixed_amount;
+    if (!fixed_amount) return res.status(400).json({ error: 'Deal is missing fixed_amount' });
+
     const Investment = (await import('../models/Investment.js')).default;
     const PaymentProof = (await import('../models/PaymentProof.js')).default;
 
+    // Prevent duplicate investment submissions (pending/verified/active/completed)
+    const existing = await Investment.findOne({
+      where: {
+        investor_id,
+        deal_id: dealId,
+        // treat any non-refunded investment as a duplicate submission
+        status: {
+          [require('sequelize').Op.ne]: 'refunded',
+        },
+      },
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: 'Investment already submitted for this deal' });
+    }
+
+
+    // Create investment with fixed amount only
     const investment = await Investment.create({
       investor_id,
       deal_id: dealId,
-      amount_invested,
-      // expected_return/status are optional in model; pass-through if provided
+      amount_invested: fixed_amount,
       expected_return: req.body.expected_return,
       status: req.body.status || 'pending',
     });
 
-    // Create payment proof if provided (file upload not implemented yet in this codebase)
-    if (paymentProofUrl || transaction_id) {
-      await PaymentProof.create({
-        transaction_id: transaction_id ?? req.body.transaction_id,
-        file_url: paymentProofUrl ?? req.body.file_url,
-        status: 'pending',
-        // verified_by will be set on verification; leave null
-        investment_id: investment.investment_id ?? investment.id,
-      });
+
+    // Create payment proof (proof upload is not implemented as file upload yet)
+    if (!paymentProofUrl && !transaction_id) {
+      return res.status(400).json({ error: 'Payment proof is required (paste a proof URL or transaction id)' });
     }
+
+    await PaymentProof.create({
+      transaction_id: transaction_id ?? req.body.transaction_id,
+      file_url: paymentProofUrl ?? req.body.file_url,
+      status: 'pending',
+      // verified_by will be set on verification; leave null
+      investment_id: investment.investment_id ?? investment.id,
+    });
+
 
     return res.status(201).json(investment);
   } catch (err) {
