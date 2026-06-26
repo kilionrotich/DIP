@@ -55,6 +55,7 @@ export default function AdminDashboard() {
     title: '',
     description: '',
     amount_required: '',
+    fixed_amount: '',
     expected_return: '',
     start_date: '',
     end_date: '',
@@ -86,10 +87,12 @@ export default function AdminDashboard() {
     title: '',
     description: '',
     amount_required: '',
+    fixed_amount: '',
     expected_return: '',
     start_date: '',
     end_date: '',
   });
+
 
   // Investors section
   const [investors, setInvestors] = useState([]);
@@ -201,7 +204,9 @@ export default function AdminDashboard() {
     setError(null);
     try {
       const dealId = editingDeal?._id || editingDeal?.deal_id || editingDeal?.id;
-      await updateDeal(dealId, editForm);
+      // Ensure fixed_amount is always sent when saving edits
+      const payload = { ...editForm, fixed_amount: editForm.fixed_amount ?? editingDeal?.fixed_amount };
+      await updateDeal(dealId, payload);
       setMessage('Deal updated successfully');
       setEditingDeal(null);
       await fetchActiveDeals();
@@ -501,7 +506,7 @@ export default function AdminDashboard() {
         {activeTab === 'create-deal' ? (
           <div className="card">
             <h3>Create Deal</h3>
-            <form onSubmit={handleDealSubmit}>
+              <form onSubmit={handleDealSubmit}>
               <input
                 placeholder="Title"
                 value={dealForm.title}
@@ -514,9 +519,12 @@ export default function AdminDashboard() {
               />
               <input
                 type="number"
-                placeholder="Amount Required"
-                value={dealForm.amount_required}
-                onChange={(e) => setDealForm({ ...dealForm, amount_required: e.target.value })}
+                placeholder="Goal (KES)"
+                value={dealForm.fixed_amount}
+                onChange={(e) => setDealForm({ ...dealForm, fixed_amount: e.target.value })}
+                required
+                step="0.01"
+                min="0"
               />
               <input
                 type="number"
