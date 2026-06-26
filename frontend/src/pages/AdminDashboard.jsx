@@ -157,8 +157,12 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === 'investors' && !investorsLoading && investors.length === 0) fetchInvestors();
     if (activeTab === 'activity-log' && !auditLogsLoading && auditLogs.length === 0) fetchAuditLogs();
-    if (activeTab === 'messages') loadInbox();
+    if (activeTab === 'messages') {
+      // inbox is handled by InboxSupport component in this repo
+      // avoid calling undefined loadInbox() which can crash render
+    }
   }, [activeTab]);
+
 
 
   useEffect(() => {
@@ -701,8 +705,8 @@ export default function AdminDashboard() {
           </>
         ) : null}
 
-        {/* Keep admin operational forms available (inside main panel) */}
         <div style={{ height: 18 }} />
+
         <div className="card">
           <h3>Record Investment</h3>
           <form onSubmit={handleInvestmentSubmit}>
