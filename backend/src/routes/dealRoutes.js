@@ -49,16 +49,18 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
     const PaymentProof = (await import('../models/PaymentProof.js')).default;
 
     // Prevent duplicate investment submissions (pending/verified/active/completed)
+    // treat any non-refunded investment as a duplicate submission
     const existing = await Investment.findOne({
       where: {
         investor_id,
         deal_id: dealId,
-        // treat any non-refunded investment as a duplicate submission
         status: {
-          [require('sequelize').Op.ne]: 'refunded',
+          // eslint-disable-next-line global-require
+          [((await import('sequelize')).Op).ne]: 'refunded',
         },
       },
     });
+
 
     if (existing) {
       return res.status(400).json({ error: 'Investment already submitted for this deal' });

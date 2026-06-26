@@ -205,7 +205,23 @@ export default function AdminDashboard() {
     try {
       const dealId = editingDeal?._id || editingDeal?.deal_id || editingDeal?.id;
       // Ensure fixed_amount is always sent when saving edits
-      const payload = { ...editForm, fixed_amount: editForm.fixed_amount ?? editingDeal?.fixed_amount };
+      const fixedAmountNum =
+        editForm.fixed_amount === '' || editForm.fixed_amount == null
+          ? Number(editingDeal?.fixed_amount)
+          : Number(editForm.fixed_amount);
+
+      if (!Number.isFinite(fixedAmountNum) || fixedAmountNum <= 0) {
+        throw new Error('Goal (fixed_amount) must be a valid number greater than 0');
+      }
+
+      const payload = {
+        ...editForm,
+        fixed_amount: fixedAmountNum,
+        expected_return:
+          editForm.expected_return === '' || editForm.expected_return == null
+            ? editingDeal?.expected_return
+            : Number(editForm.expected_return),
+      };
       await updateDeal(dealId, payload);
       setMessage('Deal updated successfully');
       setEditingDeal(null);
@@ -220,12 +236,26 @@ export default function AdminDashboard() {
     setMessage(null);
     setError(null);
     try {
-      await api.post('/api/deals', dealForm);
+      // Ensure fixed_amount is sent as a numeric value (no formatted strings)
+      const fixedAmountNum = dealForm.fixed_amount === '' ? undefined : Number(dealForm.fixed_amount);
+      if (!Number.isFinite(fixedAmountNum) || fixedAmountNum <= 0) {
+        throw new Error('Goal (fixed_amount) must be a valid number greater than 0');
+      }
+
+      const payload = {
+        ...dealForm,
+        fixed_amount: fixedAmountNum,
+        expected_return: dealForm.expected_return === '' ? undefined : Number(dealForm.expected_return),
+      };
+
+      await api.post('/api/deals', payload);
+
       setMessage('Deal created successfully!');
       setDealForm({
         title: '',
         description: '',
         amount_required: '',
+        fixed_amount: '',
         expected_return: '',
         start_date: '',
         end_date: '',
@@ -519,6 +549,7 @@ export default function AdminDashboard() {
               />
               <input
                 type="number"
+                inputMode="decimal"
                 placeholder="Goal (KES)"
                 value={dealForm.fixed_amount}
                 onChange={(e) => setDealForm({ ...dealForm, fixed_amount: e.target.value })}
@@ -528,10 +559,12 @@ export default function AdminDashboard() {
               />
               <input
                 type="number"
+                inputMode="decimal"
                 placeholder="Expected Return"
                 value={dealForm.expected_return}
                 onChange={(e) => setDealForm({ ...dealForm, expected_return: e.target.value })}
               />
+
               <input
                 type="date"
                 placeholder="Start Date"
