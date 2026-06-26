@@ -6,8 +6,9 @@ export async function register(payload) {
 }
 
 export async function login(payload) {
-  const { data } = await api.post('/api/auth/login', payload);
+  const res = await api.post('/api/auth/login', payload);
   // expected: { token, user } OR { token }
-  return data;
+  return res?.data;
 }
+
 

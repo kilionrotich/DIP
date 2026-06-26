@@ -21,16 +21,35 @@ export function AuthProvider({ children }) {
 
     async function doLogin(form) {
       const res = await login(form);
-      const nextToken = res?.token || res?.data?.token || res?.jwt;
+
+      // Backend returns: { token, user: { id, email, role } }
+      const nextToken = res?.token || res?.data?.token || res?.jwt || null;
       const nextUser = res?.user || res?.data?.user || null;
 
-      if (!nextToken) throw new Error('Login succeeded but token was not returned by backend.');
+      // Some builds may accidentally return { data: { token, user } }
+      // Try to recover token from nested structures.
+      const recoveredToken =
+        nextToken ||
+        res?.data?.token ||
+        res?.data?.data?.token ||
+        null;
 
-      localStorage.setItem('token', nextToken);
-      if (nextUser) localStorage.setItem('user', JSON.stringify(nextUser));
+      const recoveredUser =
+        nextUser ||
+        res?.data?.user ||
+        res?.data?.data?.user ||
+        null;
 
-      setToken(nextToken);
-      setUser(nextUser);
+      if (!recoveredToken) {
+        // include debug payload for easier diagnosing in production
+        throw new Error('Login succeeded but token was not returned by backend.');
+      }
+
+      localStorage.setItem('token', recoveredToken);
+      if (recoveredUser) localStorage.setItem('user', JSON.stringify(recoveredUser));
+
+      setToken(recoveredToken);
+      setUser(recoveredUser);
       return res;
     }
 
