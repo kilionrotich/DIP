@@ -652,27 +652,37 @@ export default function AdminDashboard() {
                         style={{ resize: 'vertical' }}
                       />
                       <div style={{ height: 12 }} />
-                      <button className="btn primary" type="button" onClick={async () => {
-                        try {
-                          setSendingReply(true);
-                          setError(null);
-                          if (!selectedMessage) throw new Error('Select a message');
-                          if (!replyBody.trim()) throw new Error('Reply is required');
-                          await sendMessage({ receiver_id: selectedMessage.sender_id ?? selectedMessage.sender?.user_id, subject: 'Re: ' + (selectedMessage.subject || ''), body: replyBody });
-                          setReplyBody('');
-                          setSelectedMessage(null);
-                          await loadInbox();
-                        } catch (e) {
-                          setError(e?.response?.data?.error || e?.message || 'Failed to send reply');
-                        } finally {
-                          setSendingReply(false);
-                        }
-                      }} disabled={sendingReply || !replyBody.trim()}
+                      <button
+                        className="btn primary"
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setSendingReply(true);
+                            setError(null);
+                            if (!selectedMessage) throw new Error('Select a message');
+                            if (!replyBody.trim()) throw new Error('Reply is required');
+
+                            await sendMessage({
+                              receiver_id:
+                                selectedMessage.sender_id ?? selectedMessage.sender?.user_id,
+                              subject: 'Re: ' + (selectedMessage.subject || ''),
+                              body: replyBody,
+                            });
+
+                            setReplyBody('');
+                            setSelectedMessage(null);
+                          } catch (e) {
+                            setError(e?.response?.data?.error || e?.message || 'Failed to send reply');
+                          } finally {
+                            setSendingReply(false);
+                          }
+                        }}
+                        disabled={sendingReply || !replyBody.trim()}
                       >
                         {sendingReply ? 'Sending...' : 'Send Reply'}
                       </button>
                       <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
-                        Saved to DB and will appear in investor inbox via polling.
+                        Saved. Inbox reply endpoints may be implemented separately.
                       </div>
                     </>
                   ) : (
