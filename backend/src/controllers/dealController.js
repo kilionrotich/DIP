@@ -65,20 +65,26 @@ export async function getDeals(req, res) {
     const roiMax = roi_max !== undefined ? Number(roi_max) : null;
 
     const filtered = deals.filter((d) => {
-      // ROI % = (expected_return - amount_required) / amount_required * 100
-      // amount_required may be missing in some seed/data; fallback to fixed_amount if needed.
+      // ROI % = (expected_return - required) / required * 100
+      // required can be amount_required (legacy) or fixed_amount (new)
       const expected = Number(d.expected_return);
       const required = Number(d.amount_required ?? d.fixed_amount);
-      if (!Number.isFinite(expected) || !Number.isFinite(required) || required <= 0) {
-        return roiMin === null && roiMax === null; // keep only if no ROI filter
-      }
-      const roiPct = ((expected - required) / required) * 100;
 
+      // If ROI filters are not requested, keep the deal even if ROI inputs are missing.
+      if (roiMin === null && roiMax === null) return true;
+
+      // If ROI filters are requested but we can't compute ROI for this deal, drop it.
+      if (!Number.isFinite(expected) || !Number.isFinite(required) || required <= 0) {
+        return false;
+      }
+
+      const roiPct = ((expected - required) / required) * 100;
 
       if (roiMin !== null && roiPct < roiMin) return false;
       if (roiMax !== null && roiPct > roiMax) return false;
       return true;
     });
+
 
     res.json(filtered);
   } catch (err) {
