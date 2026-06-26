@@ -31,9 +31,16 @@ export default function Login() {
       const role = user?.role || user?.type;
 
       setSuccess('Login successful');
+
+      // Ensure token is present immediately after login (prevents protected routes 403)
+      if (!localStorage.getItem('token')) {
+        console.warn('Auth token not found in localStorage after login.');
+      }
+
       if (role === 'super_admin') navigate('/super-admin', { replace: true });
       else if (role === 'admin') navigate('/admin', { replace: true });
       else navigate('/dashboard', { replace: true });
+
 
     } catch (err) {
       console.error("Login error:", err); // debug
