@@ -115,6 +115,21 @@ export default function AdminDashboard() {
   const [replyBody, setReplyBody] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
 
+  async function fetchInbox() {
+    setInboxLoading(true);
+    setInboxError(null);
+    try {
+      // Current UI uses inbox for the admin in AdminDashboard
+      const res = await getInboxMessages({});
+      setInbox(Array.isArray(res) ? res : res || []);
+    } catch (e) {
+      setInboxError(e?.response?.data?.error || e?.message || 'Failed to load inbox');
+    } finally {
+      setInboxLoading(false);
+    }
+  }
+
+
   // Activity Log
   const [auditLogs, setAuditLogs] = useState([]);
 
@@ -167,11 +182,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === 'investors' && !investorsLoading && investors.length === 0) fetchInvestors();
     if (activeTab === 'activity-log' && !auditLogsLoading && auditLogs.length === 0) fetchAuditLogs();
-    if (activeTab === 'messages') {
-      // inbox is handled by InboxSupport component in this repo
-      // avoid calling undefined loadInbox() which can crash render
-    }
+    if (activeTab === 'messages' && !inboxLoading && inbox.length === 0) fetchInbox();
   }, [activeTab]);
+
 
 
 
