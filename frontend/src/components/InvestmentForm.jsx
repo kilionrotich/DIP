@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 
-export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit }) {
+export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, disabled }) {
+  const isDisabled = Boolean(disabled);
+
   const [commitType, setCommitType] = useState('capital');
 
   // Payment proof (simple: proof URL + transaction id)
@@ -92,7 +94,7 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit }) 
       </div>
 
 
-      <button className="btn primary" disabled={loading} style={{ width: '100%' }} type="submit">
+      <button className="btn primary" disabled={loading || isDisabled} style={{ width: '100%', opacity: isDisabled ? 0.6 : 1 }} type="submit">
         {loading ? 'Committing...' : `Commit Investment to Deal ${dealId}`}
       </button>
 

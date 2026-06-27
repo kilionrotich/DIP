@@ -1,5 +1,6 @@
 // backend/src/controllers/dealController.js
 import Deal from '../models/Deal.js';
+import Investment from '../models/Investment.js';
 
 // Create a new deal (Admin only)
 export async function createDeal(req, res) {
@@ -180,16 +181,18 @@ export async function cancelDeal(req, res) {
     const { dealId } = req.params;
     const { hardDelete = false } = req.body || {};
 
+
+
     const deal = await Deal.findByPk(dealId);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-    // Soft close: for safety + mirrors “cancel” semantics
+  // Soft close: for safety + mirrors “cancel” semantics
     if (!hardDelete) {
       if (deal.status !== 'open') {
         return res.status(400).json({ error: 'Deal is not active' });
       }
-      await deal.update({ status: 'closed' });
-      return res.json({ message: 'Deal cancelled (closed)', deal });
+      await deal.update({ status: 'cancelled' });
+      return res.json({ message: 'Deal cancelled (cancelled)', deal });
     }
 
     // Hard delete

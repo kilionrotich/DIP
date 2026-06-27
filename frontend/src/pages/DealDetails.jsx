@@ -108,6 +108,18 @@ export default function DealDeatails() {
           <div className="card" style={{ flex: 1, minWidth: 320 }}>
             <h3 style={{ marginTop: 0 }}>Commit Investment</h3>
 
+            {(() => {
+              const dealStatus = String(deal?.status || '').toLowerCase();
+              const disabled = ['cancelled', 'completed'].includes(dealStatus);
+              if (!disabled) return null;
+              const reason = dealStatus === 'cancelled' ? 'This deal has been cancelled.' : 'This deal has been completed.';
+              return (
+                <div className="alert err" style={{ marginBottom: 12 }}>
+                  {reason}
+                </div>
+              );
+            })()}
+
             {commitStatus?.type === 'ok' ? <div className="alert ok">{commitStatus.text}</div> : null}
             {commitStatus?.type === 'err' ? <div className="alert err">{commitStatus.text}</div> : null}
 
@@ -118,7 +130,13 @@ export default function DealDeatails() {
             ) : null}
 
 
-            <InvestmentForm dealId={id} user={user} fixedAmount={deal?.fixed_amount} onSubmit={onCommit} />
+            <InvestmentForm
+              dealId={id}
+              user={user}
+              fixedAmount={deal?.fixed_amount}
+              onSubmit={onCommit}
+              disabled={['cancelled', 'completed'].includes(String(deal?.status || '').toLowerCase())}
+            />
 
           </div>
         </div>

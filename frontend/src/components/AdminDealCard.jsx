@@ -8,6 +8,7 @@ export default function AdminDealCard({ deal, onEdit, onCancel }) {
   const title = deal?.title || deal?.name || 'Untitled deal';
   const description = deal?.description || '';
 
+  const isCancelled = String(deal?.status || '').toLowerCase() === 'cancelled';
   const isOpen = deal?.status === 'open';
 
   return (
@@ -57,7 +58,7 @@ export default function AdminDealCard({ deal, onEdit, onCancel }) {
           type="button"
           onClick={() => onCancel?.(deal)}
           disabled={!id || !isOpen}
-          style={{ flex: 1, minWidth: 120 }}
+          style={{ flex: 1, minWidth: 120, opacity: isCancelled ? 0.6 : 1 }}
           title={isOpen ? 'Cancel/Delete deal' : 'Deal is not active'}
         >
           Cancel

@@ -142,5 +142,39 @@ router.put('/:dealId', verifyToken, isAdminOrSuperAdmin, updateDeal);
 // Admin: cancel/delete deal
 router.post('/:dealId/cancel', verifyToken, isAdminOrSuperAdmin, cancelDeal);
 
+// Admin: close completed deal
+router.post('/:dealId/close', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
+  try {
+    const { dealId } = req.params;
+
+    const Deal = (await import('../models/Deal.js')).default;
+    const Investment = (await import('../models/Investment.js')).default;
+
+    const deal = await Deal.findByPk(dealId);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    if (deal.status === 'cancelled') {
+      return res.status(400).json({ error: 'Cancelled deals cannot be closed' });
+    }
+
+    // close deal
+    await deal.update({ status: 'completed' });
+
+    // mark investments completed (best-effort)
+    if (dealId) {
+      await Investment.update(
+        { status: 'completed' },
+        { where: { deal_id: dealId } }
+      );
+    }
+
+    return res.json({ message: 'Deal closed (completed)', deal });
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+});
+
 export default router;
+
+
 

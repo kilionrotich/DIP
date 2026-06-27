@@ -740,31 +740,6 @@ export default function AdminDashboard() {
         ) : null}
 
         <div style={{ height: 18 }} />
-
-        <div className="card">
-          <h3>Record Investment</h3>
-          <form onSubmit={handleInvestmentSubmit}>
-            <input
-              placeholder="Investor ID"
-              value={investmentForm.investor_id}
-              onChange={(e) => setInvestmentForm({ ...investmentForm, investor_id: e.target.value })}
-            />
-            <input
-              placeholder="Deal ID"
-              value={investmentForm.deal_id}
-              onChange={(e) => setInvestmentForm({ ...investmentForm, deal_id: e.target.value })}
-            />
-            <input
-              type="number"
-              placeholder="Amount Invested"
-              value={investmentForm.amount_invested}
-              onChange={(e) => setInvestmentForm({ ...investmentForm, amount_invested: e.target.value })}
-            />
-            <button type="submit">Record Investment</button>
-          </form>
-        </div>
-
-        <div style={{ height: 18 }} />
         <div className="card">
           <h3>Update Profit</h3>
           <form onSubmit={handleProfitSubmit}>
