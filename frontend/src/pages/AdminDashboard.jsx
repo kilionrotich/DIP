@@ -410,15 +410,8 @@ export default function AdminDashboard() {
 
         <div style={{ height: 12 }} />
 
-        <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h2 style={{ margin: 0 }}>Admin Dashboard</h2>
-            <div style={{ color: 'var(--muted)' }}>{profile.email}</div>
-          </div>
-          <button className="btn danger" onClick={logout}>
-            Logout
-          </button>
-        </div>
+        <div style={{ height: 0 }} />
+
 
         <div style={{ height: 16 }} />
 
