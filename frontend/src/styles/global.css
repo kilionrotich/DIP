@@ -108,8 +108,20 @@ a {
   background: rgba(255, 77, 77, 0.12);
 }
 
+/* === Sidebar breathing profile icon === */
+@keyframes sidebarBreath {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.sidebar-profile-breath {
+  animation: sidebarBreath 1.6s ease-in-out infinite;
+}
+
 /* === Dashboard Stats === */
 .dashboard-stats {
+
   display: flex;
   gap: 16px;
   flex-wrap: wrap;

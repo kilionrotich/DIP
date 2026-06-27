@@ -50,6 +50,12 @@ export default function AdminDashboard() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('active-deals');
 
+  function navigateAndCollapse(tabKey) {
+    setActiveTab(tabKey);
+    setSidebarExpanded(false);
+  }
+
+
   // Deal form state
   const [dealForm, setDealForm] = useState({
     title: '',
@@ -321,7 +327,10 @@ export default function AdminDashboard() {
             style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
             aria-label="Toggle profile"
           >
-            <Avatar name={profile.name} role={profile.role} photoUrl={profile.photoUrl} />
+            <div className="sidebar-profile-breath">
+              <Avatar name={profile.name} role={profile.role} photoUrl={profile.photoUrl} />
+            </div>
+
           </button>
           {sidebarExpanded ? (
             <button className="btn" type="button" onClick={() => setSidebarExpanded(false)}>
@@ -331,7 +340,8 @@ export default function AdminDashboard() {
         </div>
 
         {sidebarExpanded ? (
-          <div style={{ marginTop: 14 }}>
+          <div style={{ marginTop: 14, opacity: 0.98 }}>
+
             <div className="card" style={{ padding: 14, marginBottom: 12 }}>
               <SidebarSectionTitle>Profile Overview</SidebarSectionTitle>
               <div style={{ fontWeight: 900, marginBottom: 4 }}>{profile.name}</div>
@@ -399,7 +409,8 @@ export default function AdminDashboard() {
               key={item.key}
               type="button"
               className="btn"
-              onClick={() => setActiveTab(item.key)}
+              onClick={() => navigateAndCollapse(item.key)}
+
               style={{
                 width: '100%',
                 justifyContent: 'flex-start',
