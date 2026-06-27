@@ -319,11 +319,12 @@ export default function AdminDashboard() {
 
         <aside className={`admin-sidebar ${sidebarExpanded ? 'open' : ''}`} aria-hidden={!sidebarExpanded}>
           <div className="admin-sidebar-header">
-            <div style={{ fontWeight: 900 }}>Admin</div>
+            <div style={{ width: 1, height: 1, overflow: 'hidden' }}> </div>
             <button className="admin-sidebar-close" type="button" onClick={() => setSidebarExpanded(false)} aria-label="Close menu">
               ✕
             </button>
           </div>
+
 
           <div className="admin-sidebar-scroll">
             <div className="card" style={{ padding: 14, marginBottom: 12 }}>
