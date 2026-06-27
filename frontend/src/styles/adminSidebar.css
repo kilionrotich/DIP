@@ -87,5 +87,9 @@
     border: 1px solid rgba(255,255,255,0.08);
     overflow: auto;
   }
+
+  /* Desktop main content should not reserve space for the mobile avatar */
+  .admin-sidebar-avatar{ display:none !important; }
 }
+
 

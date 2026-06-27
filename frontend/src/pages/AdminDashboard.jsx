@@ -397,23 +397,17 @@ export default function AdminDashboard() {
         style={{
           padding: 0,
           maxWidth: 820,
-          transition: 'opacity 180ms ease, transform 180ms ease',
+          transition: 'opacity 0.3s ease, transform 0.3s ease',
           flex: 1,
           minWidth: 0,
           overflow: 'auto',
+          display: sidebarExpanded ? 'none' : 'block',
+          paddingTop: 84,
         }}
       >
-
-
         {message ? <div className="alert ok">{message}</div> : null}
         {error ? <div className="alert err">{error}</div> : null}
 
-        <div style={{ height: 12 }} />
-
-        <div style={{ height: 0 }} />
-
-
-        <div style={{ height: 16 }} />
 
         <DashboardStats
           stats={{ totalInvested: 0, profitValue: 0, investmentsCount: 0 }}
