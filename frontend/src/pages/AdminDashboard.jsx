@@ -7,6 +7,7 @@ import { getInvestors } from '../services/investorService';
 import { getRecentAuditLogs } from '../services/auditService';
 import AdminDealCard from '../components/AdminDealCard';
 import { getInboxMessages, sendMessage } from '../services/messageService';
+import '../styles/adminSidebar.css';
 
 
 function Avatar({ name, role, photoUrl }) {
@@ -301,47 +302,30 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', padding: '0 8px' }}>
-      {/* Sidebar */}
+      {/* Mobile overlay & sidebar */}
+      <div className="admin-sidebar-wrapper">
+        <button
+          type="button"
+          className="admin-sidebar-avatar"
+          onClick={() => setSidebarExpanded(true)}
+          aria-label="Open admin menu"
+        >
+          <div className="sidebar-profile-breath">
+            <Avatar name={profile.name} role={profile.role} photoUrl={profile.photoUrl} />
+          </div>
+        </button>
 
-      <div
-        style={{
-          width: sidebarExpanded ? 'calc(50vw - 8px)' : 88,
-          transition: 'width 160ms ease',
-          position: 'sticky',
-          top: 16,
-          alignSelf: 'flex-start',
-          padding: 16,
-          background: 'var(--card)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 12,
-          height: 'calc(100vh - 32px)',
-          overflow: 'auto',
-          maxWidth: 480,
-          minWidth: sidebarExpanded ? 260 : 88,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarExpanded ? 'space-between' : 'center' }}>
-          <button
-            type="button"
-            onClick={() => setSidebarExpanded((s) => !s)}
-            style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
-            aria-label="Toggle profile"
-          >
-            <div className="sidebar-profile-breath">
-              <Avatar name={profile.name} role={profile.role} photoUrl={profile.photoUrl} />
-            </div>
+        {sidebarExpanded ? <div className="admin-sidebar-overlay" onClick={() => setSidebarExpanded(false)} /> : null}
 
-          </button>
-          {sidebarExpanded ? (
-            <button className="btn" type="button" onClick={() => setSidebarExpanded(false)}>
-              Collapse
+        <aside className={`admin-sidebar ${sidebarExpanded ? 'open' : ''}`} aria-hidden={!sidebarExpanded}>
+          <div className="admin-sidebar-header">
+            <div style={{ fontWeight: 900 }}>Admin</div>
+            <button className="admin-sidebar-close" type="button" onClick={() => setSidebarExpanded(false)} aria-label="Close menu">
+              ✕
             </button>
-          ) : null}
-        </div>
+          </div>
 
-        {sidebarExpanded ? (
-          <div style={{ marginTop: 14, opacity: 0.98 }}>
-
+          <div className="admin-sidebar-scroll">
             <div className="card" style={{ padding: 14, marginBottom: 12 }}>
               <SidebarSectionTitle>Profile Overview</SidebarSectionTitle>
               <div style={{ fontWeight: 900, marginBottom: 4 }}>{profile.name}</div>
@@ -351,27 +335,13 @@ export default function AdminDashboard() {
             </div>
 
             <div className="card" style={{ padding: 14, marginBottom: 12 }}>
-              <SidebarSectionTitle>Account Settings</SidebarSectionTitle>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button className="btn" type="button" onClick={() => setActiveTab('account-settings')}>
-                  Profile Overview
-                </button>
-              </div>
-              <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
-                Account settings controls are not wired yet.
-              </div>
-            </div>
-
-
-
-            <div className="card" style={{ padding: 14, marginBottom: 12 }}>
-
               <SidebarSectionTitle>Activity Log</SidebarSectionTitle>
               <button
                 type="button"
                 className="btn"
                 onClick={() => {
                   setActiveTab('activity-log');
+                  setSidebarExpanded(false);
                 }}
                 style={{ width: '100%' }}
               >
@@ -382,51 +352,43 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <button
-              className="btn danger"
-              type="button"
-              style={{ width: '100%' }}
-              onClick={logout}
-            >
+            <button className="btn danger" type="button" style={{ width: '100%' }} onClick={logout}>
               Logout
             </button>
+
+            <div style={{ marginTop: 14 }}>
+              <SidebarSectionTitle>Navigation</SidebarSectionTitle>
+              {[
+                { key: 'active-deals', label: 'Profile Overview' },
+                { key: 'activity-log', label: 'Activity Log' },
+                { key: 'active-deals', label: 'Active Deals' },
+                { key: 'create-deal', label: 'Create Deal' },
+                { key: 'messages', label: 'Messages' },
+                { key: 'investors', label: 'Investors' },
+              ].map((item, idx) => (
+                <button
+                  key={`${item.key}-${idx}`}
+                  type="button"
+                  className="btn"
+                  onClick={() => navigateAndCollapse(item.key)}
+                  style={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    marginBottom: 10,
+                    background: activeTab === item.key ? 'rgba(91,140,255,0.18)' : undefined,
+                    borderColor: activeTab === item.key ? 'rgba(91,140,255,0.6)' : undefined,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', width: 18, justifyContent: 'center' }}>•</span>
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : null}
-
-        {/* Navigation */}
-        <div style={{ marginTop: 14 }}>
-          <SidebarSectionTitle>Navigation</SidebarSectionTitle>
-          {[ 
-            { key: 'active-deals', label: 'Active Deals' },
-            { key: 'create-deal', label: 'Create Deal' },
-            { key: 'messages', label: 'Messages' },
-            { key: 'investors', label: 'Investors' },
-            { key: 'reports', label: 'Reports' },
-          ].map((item) => (
-
-
-            <button
-              key={item.key}
-              type="button"
-              className="btn"
-              onClick={() => navigateAndCollapse(item.key)}
-
-              style={{
-                width: '100%',
-                justifyContent: 'flex-start',
-                marginBottom: 10,
-                background: activeTab === item.key ? 'rgba(91,140,255,0.18)' : undefined,
-                borderColor: activeTab === item.key ? 'rgba(91,140,255,0.6)' : undefined,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-              }}
-            >
-              <span style={{ display: 'inline-flex', width: 18, justifyContent: 'center' }}>•</span>
-              {sidebarExpanded ? item.label : null}
-            </button>
-          ))}
-        </div>
+        </aside>
       </div>
 
       {/* Main panel */}
@@ -441,6 +403,7 @@ export default function AdminDashboard() {
           overflow: 'auto',
         }}
       >
+
 
         {message ? <div className="alert ok">{message}</div> : null}
         {error ? <div className="alert err">{error}</div> : null}
