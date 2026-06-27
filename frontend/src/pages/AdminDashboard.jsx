@@ -242,11 +242,19 @@ export default function AdminDashboard() {
         throw new Error('Goal (fixed_amount) must be a valid number greater than 0');
       }
 
+      const expectedReturnNum =
+        dealForm.expected_return === '' || dealForm.expected_return == null
+          ? undefined
+          : Number(dealForm.expected_return);
+
       const payload = {
         ...dealForm,
+        amount_required: dealForm.amount_required === '' || dealForm.amount_required == null ? fixedAmountNum : Number(dealForm.amount_required),
         fixed_amount: fixedAmountNum,
-        expected_return: dealForm.expected_return === '' ? undefined : Number(dealForm.expected_return),
+        expected_return:
+          expectedReturnNum == null || !Number.isFinite(expectedReturnNum) ? undefined : expectedReturnNum,
       };
+
 
       await api.post('/api/deals', payload);
 

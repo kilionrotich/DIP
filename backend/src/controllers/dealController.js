@@ -4,7 +4,34 @@ import Deal from '../models/Deal.js';
 // Create a new deal (Admin only)
 export async function createDeal(req, res) {
   try {
-    const { title, description, amount_required, fixed_amount, expected_return, start_date, end_date, status } = req.body;
+    let {
+      title,
+      description,
+      amount_required,
+      fixed_amount,
+      expected_return,
+      start_date,
+      end_date,
+      status,
+    } = req.body;
+
+    // Normalize numeric fields coming from the frontend (empty strings cause Sequelize "invalid syntax" errors)
+    amount_required = amount_required === '' || amount_required == null ? null : Number(amount_required);
+    fixed_amount = fixed_amount === '' || fixed_amount == null ? null : Number(fixed_amount);
+    expected_return = expected_return === '' || expected_return == null ? null : Number(expected_return);
+
+    if (!Number.isFinite(amount_required)) amount_required = null;
+    if (!Number.isFinite(fixed_amount)) fixed_amount = null;
+    if (!Number.isFinite(expected_return)) expected_return = null;
+
+    // If the admin form provides only fixed_amount (or amount_required is empty), keep DB constraints happy.
+    // Deal model requires both amount_required and fixed_amount as NOT NULL, so derive one from the other.
+    if (amount_required == null && fixed_amount != null) amount_required = fixed_amount;
+    if (fixed_amount == null && amount_required != null) fixed_amount = amount_required;
+
+    if (amount_required == null || fixed_amount == null) {
+      return res.status(400).json({ error: 'amount_required and fixed_amount must be valid numbers' });
+    }
 
     const deal = await Deal.create({
       title,
@@ -16,6 +43,7 @@ export async function createDeal(req, res) {
       end_date,
       status: status || 'open',
     });
+
 
     res.status(201).json(deal);
   } catch (err) {
