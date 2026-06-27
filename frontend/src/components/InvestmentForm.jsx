@@ -5,9 +5,8 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
 
   const [commitType, setCommitType] = useState('capital');
 
-  // Payment proof (simple: proof URL + transaction id)
-  // File upload is not implemented in the current backend.
-  const [paymentProofUrl, setPaymentProofUrl] = useState('');
+  // Payment proof (upload M-Pesa slip / bank slip)
+  const [paymentSlipFile, setPaymentSlipFile] = useState(null);
   const [transactionId, setTransactionId] = useState('');
 
 

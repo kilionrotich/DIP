@@ -52,6 +52,11 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
     const deal = await Deal.findByPk(dealId);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
+    // Investor can only commit once Admin approves the deal
+    if (deal.status !== 'approved' && deal.status !== 'open') {
+      return res.status(400).json({ error: `Deal is not approved for investment (status: ${deal.status})` });
+    }
+
     // Fixed amount enforcement: ignore client-provided amount, always use deal.fixed_amount
     const fixed_amount = deal.fixed_amount;
     if (fixed_amount === null || fixed_amount === undefined || fixed_amount === '') {
@@ -83,17 +88,29 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
       status: status || 'pending',
     });
 
-    // Create payment proof (proof upload is not implemented as file upload yet)
+// Payment proof: supports uploaded file and/or transaction id
     // Accept payload variants:
-    // - paymentProofUrl / proofUrl (file URL)
     // - transaction_id (string)
     // - file_url (string)
-    const resolvedFileUrl = paymentProofUrl ?? proofUrl ?? file_url;
+    // - paymentProofUrl / proofUrl (legacy)
+    // NOTE: This endpoint expects multipart upload support to be wired in server.js.
+    // If a multipart upload is used, multer will provide req.file / req.files.
     const resolvedTransactionId = transaction_id_from_body ?? req.body?.transaction_id;
+
+    // file_url might come from legacy inputs; if we add multer later, we map it here.
+    let resolvedFileUrl = paymentProofUrl ?? proofUrl ?? file_url;
+
+    // Prefer uploaded file path if present
+    if (!resolvedFileUrl && req.file?.path) {
+      resolvedFileUrl = req.file.path;
+    }
+    if (!resolvedFileUrl && req.files?.length) {
+      resolvedFileUrl = req.files[0]?.path;
+    }
 
     if (!resolvedFileUrl && !resolvedTransactionId) {
       return res.status(400).json({
-        error: 'Payment proof is required (paste a proof URL or transaction id)',
+        error: 'Payment proof is required (upload a slip or provide a transaction id)',
       });
     }
 

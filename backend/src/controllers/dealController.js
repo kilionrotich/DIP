@@ -42,6 +42,7 @@ export async function createDeal(req, res) {
       expected_return,
       start_date,
       end_date,
+      // Admin can set status (e.g. 'approved'). Investor commits will be blocked unless approved.
       status: status || 'open',
     });
 
