@@ -18,6 +18,16 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+
+    const cleanProofUrl = (paymentProofUrl || '').trim();
+    const cleanTxId = (transactionId || '').trim();
+
+    // Backend requires either paymentProofUrl (or file upload later) OR transaction_id.
+    if (!cleanProofUrl && !cleanTxId) {
+      setError('Transaction ID or Payment Proof URL is required');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -28,8 +38,8 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
 
         // PaymentProof fields consumed by backend route POST /api/deals/:dealId/invest
         // (file upload not implemented yet)
-        paymentProofUrl: paymentProofUrl ? paymentProofUrl : undefined,
-        transaction_id: transactionId ? transactionId : undefined,
+        paymentProofUrl: cleanProofUrl || undefined,
+        transaction_id: cleanTxId || undefined,
 
       };
 
@@ -40,6 +50,7 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
       setLoading(false);
     }
   }
+
 
   return (
     <form onSubmit={handleSubmit}>

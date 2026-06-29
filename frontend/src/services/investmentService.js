@@ -10,6 +10,9 @@ export async function getInvestmentsByDeal(dealId) {
   return data;
 }
 
+// NOTE: keep commitInvestment unchanged; endpoint must be implemented server-side.
+
+
 export async function commitInvestment(dealId, payload) {
   const { data } = await api.post(`/api/deals/${dealId}/invest`, payload);
   return data;

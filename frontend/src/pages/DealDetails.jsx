@@ -16,9 +16,11 @@ export default function DealDeatails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // commit workflow
+  // Admin should not commit investments in deal details.
+  // This page is used by Investor to commit.
   const [commitStatus, setCommitStatus] = useState(null); // { type: 'ok'|'err'|'info', text }
   const [submitted, setSubmitted] = useState(false);
+
 
 
 
@@ -106,39 +108,18 @@ export default function DealDeatails() {
           </div>
 
           <div className="card" style={{ flex: 1, minWidth: 320 }}>
-            <h3 style={{ marginTop: 0 }}>Commit Investment</h3>
+            <h3 style={{ marginTop: 0 }}>Deal Details</h3>
 
-            {(() => {
-              const dealStatus = String(deal?.status || '').toLowerCase();
-              const disabled = ['cancelled', 'completed'].includes(dealStatus);
-              if (!disabled) return null;
-              const reason = dealStatus === 'cancelled' ? 'This deal has been cancelled.' : 'This deal has been completed.';
-              return (
-                <div className="alert err" style={{ marginBottom: 12 }}>
-                  {reason}
-                </div>
-              );
-            })()}
+            <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 10 }}>
+              Admin view: show how many investors have selected this deal.
+              Investor view: committing is handled on the Investor dashboard flow.
+            </div>
 
-            {commitStatus?.type === 'ok' ? <div className="alert ok">{commitStatus.text}</div> : null}
-            {commitStatus?.type === 'err' ? <div className="alert err">{commitStatus.text}</div> : null}
-
-            {submitted ? (
-              <div style={{ marginTop: 12 }}>
-                <div className="alert ok">Awaiting verification by admin. You can submit again if needed.</div>
-              </div>
-            ) : null}
-
-
-            <InvestmentForm
-              dealId={id}
-              user={user}
-              fixedAmount={deal?.fixed_amount}
-              onSubmit={onCommit}
-              disabled={['cancelled', 'completed'].includes(String(deal?.status || '').toLowerCase())}
-            />
-
+            <div className="alert" style={{ marginBottom: 12 }}>
+              Investor count placeholder (backend endpoint not wired yet).
+            </div>
           </div>
+
         </div>
       ) : null}
     </div>
