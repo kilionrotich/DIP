@@ -6,12 +6,14 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
   const [commitType, setCommitType] = useState('capital');
 
   // Payment proof (upload M-Pesa slip / bank slip)
+  // NOTE: file upload isn't wired in this repo; UI keeps a placeholder.
   const [paymentSlipFile, setPaymentSlipFile] = useState(null);
+  const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [transactionId, setTransactionId] = useState('');
-
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -25,8 +27,10 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
         investorId: user?._id || user?.id,
 
         // PaymentProof fields consumed by backend route POST /api/deals/:dealId/invest
-        paymentProofUrl: paymentProofUrl || undefined,
-        transaction_id: transactionId || undefined,
+        // (file upload not implemented yet)
+        paymentProofUrl: paymentProofUrl ? paymentProofUrl : undefined,
+        transaction_id: transactionId ? transactionId : undefined,
+
       };
 
       await onSubmit(payload);
@@ -81,6 +85,7 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
           File upload is not implemented yet; paste a receipt/transaction proof link if available.
         </div>
       </div>
+
 
       <div className="form-group">
         <label className="label">Transaction ID (optional)</label>
