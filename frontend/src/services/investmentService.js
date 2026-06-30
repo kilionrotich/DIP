@@ -6,6 +6,18 @@ export async function getInvestments() {
   return data;
 }
 
+// Investor: fetch investments by status (pending, active, completed, cancelled)
+export async function getInvestmentsByStatus(status) {
+  const { data } = await api.get('/api/investments', { params: { status } });
+  return data;
+}
+
+// Investor: Available Opportunities (open deals without investor commitment)
+export async function getAvailableDeals() {
+  const { data } = await api.get('/api/investments/available');
+  return data;
+}
+
 // Investor/Admin: fetch investments tied to a specific deal
 export async function getInvestmentsByDeal(dealId) {
   const { data } = await api.get(`/api/deals/${dealId}/investments`);
@@ -18,7 +30,7 @@ export async function commitInvestment(dealId, payload) {
   return data;
 }
 
-// Admin: verify an investment (status → active)
+// Admin: verify an investment (status ? active)
 export async function verifyInvestment(investmentId) {
   const { data } = await api.put(`/api/investments/${investmentId}/verify`);
   return data;

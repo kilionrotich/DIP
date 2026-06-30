@@ -5,7 +5,8 @@ import {
   getInvestments,
   commitInvestment,
   verifyInvestment,
-  updateProfit
+  updateProfit,
+  getAvailableDeals
 } from '../controllers/investmentController.js';
 import { verifyToken, isAdminOrSuperAdmin } from '../middleware/authMiddleware.js';
 
@@ -50,4 +51,5 @@ router.put('/:investmentId/profit', verifyToken, isAdminOrSuperAdmin, async (req
 // Investor/Admin fetch all investments (protected)
 router.get('/', verifyToken, getInvestments);
 
-export default router;
+// Investor: Available Opportunities (open deals without investor commitment)\nrouter.get('/available', verifyToken, getAvailableDeals);\n\nexport default router;
+

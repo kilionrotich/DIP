@@ -1,8 +1,7 @@
 // backend/src/controllers/dealController.js
 import Deal from '../models/Deal.js';
+import { Op } from 'sequelize';
 import Investment from '../models/Investment.js';
-
-// Create a new deal (Admin only)
 export async function createDeal(req, res) {
   try {
     let {
@@ -115,7 +114,7 @@ export async function getActiveDeals(req, res) {
       const activeInvestment = await Investment.findOne({
         where: {
           deal_id: deal.deal_id,
-          status: { [Op.or]: ['active', 'pending'] },
+          status: { [Op.in]: ["active", "pending"] },
         },
       });
       if (!activeInvestment) {
@@ -137,7 +136,7 @@ export async function getInProgressDeals(req, res) {
 
     // Find all active investments and get their deal_ids
     const activeInvestments = await Investment.findAll({
-      where: { status: { [Op.or]: ['active', 'pending'] } },
+      where: { status: { [Op.in]: ["active", "pending"] } },
       attributes: ['deal_id'],
     });
 
@@ -244,3 +243,8 @@ export async function closeDeal(req, res) {
     return res.status(400).json({ error: err.message });
   }
 }
+
+
+
+
+

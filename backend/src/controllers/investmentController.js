@@ -78,6 +78,7 @@ export async function updateProfit(req, res) {
     const deal = await Deal.findByPk(investment.deal_id);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
+
     const validDealStatuses = ['open', 'active', 'in_progress'];
     if (!validDealStatuses.includes(deal.status?.toLowerCase())) {
       return res.status(400).json({ error: `Deal status must be 'open' or 'active' to update profit (current: ${deal.status})` });
@@ -112,15 +113,58 @@ export async function createInvestment(req, res) {
   }
 }
 
-// Get all investments (wrap response in { investments })
+// Get all investments (filter by investor_id and status)
 export async function getInvestments(req, res) {
   try {
+    const { status } = req.query;
+    const investor_id = req.user?.id ?? req.user?.user_id;
+
+    const where = {};
+    if (investor_id) where.investor_id = investor_id;
+    if (status) {
+      const statuses = status.split(',').map(s => s.trim());
+      where.status = statuses.length > 1 ? statuses : status;
+    }
+
     const investments = await Investment.findAll({
-      include: [Deal],
+      where: Object.keys(where).length ? where : undefined,
+      include: [{ model: Deal, as: 'deal' }],
       order: [['investment_id', 'DESC']],
     });
 
     res.status(200).json({ investments });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// Get Available Opportunities for investor (open deals without investor's commitment)
+export async function getAvailableDeals(req, res) {
+  try {
+    const investor_id = req.user?.id ?? req.user?.user_id;
+    
+    // Find all open deals
+    const deals = await Deal.findAll({
+      where: { status: 'open' },
+      order: [['deal_id', 'DESC']],
+    });
+
+    // Filter out deals where this investor already has an investment
+    const availableDeals = [];
+    for (const deal of deals) {
+      const existing = await Investment.findOne({
+        where: {
+          deal_id: deal.deal_id,
+          investor_id,
+          status: { [require('sequelize').Op.in]: ['pending', 'active'] }
+        }
+      });
+      if (!existing) {
+        availableDeals.push(deal);
+      }
+    }
+
+    res.json(availableDeals);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
