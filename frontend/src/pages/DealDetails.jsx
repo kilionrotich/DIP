@@ -16,7 +16,7 @@ function StatusBadge({ status }) {
   const styles = {
     pending: { bg: 'rgba(241,196,15,0.15)', color: '#f1c40f', label: 'Pending' },
     verified: { bg: 'rgba(46,204,113,0.15)', color: '#2ecc71', label: 'Verified' },
-    active: { bg: 'rgba(91,140,255,0.15)', color: '#5b8cff', label: 'Active' },
+    active: { bg: 'rgba(46,204,113,0.15)', color: '#2ecc71', label: 'Approved' },
     completed: { bg: 'rgba(155,89,182,0.15)', color: '#9b59b6', label: 'Completed' },
     refunded: { bg: 'rgba(231,76,60,0.15)', color: '#e74c3c', label: 'Refunded' },
   };
@@ -225,7 +225,9 @@ export default function DealDetails() {
               <div style={{ color: 'var(--muted)' }}>Loading commitments...</div>
             ) : investments.length === 0 ? (
               <div style={{ color: 'var(--muted)', fontSize: 13 }}>
-                No commitments yet. Be the first to invest!
+                {isAdmin
+                  ? 'No investors have committed to this deal yet.'
+                  : 'No commitments yet. Be the first to invest!'}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
