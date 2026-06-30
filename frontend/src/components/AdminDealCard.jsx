@@ -7,7 +7,7 @@ function formatKES(val) {
   return `${n.toLocaleString()} KES`;
 }
 
-export default function AdminDealCard({ deal, onEdit, onCancel, onApprove, onClose }) {
+export default function AdminDealCard({ deal, onEdit, onCancel, onClose }) {
   const navigate = useNavigate();
   const id = deal?._id ?? deal?.deal_id ?? deal?.id;
 
@@ -69,17 +69,6 @@ export default function AdminDealCard({ deal, onEdit, onCancel, onApprove, onClo
       <div style={{ height: 10 }} />
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        {isOpen && (
-          <button
-            className="btn"
-            type="button"
-            onClick={() => onApprove?.(deal)}
-            disabled={!id}
-            style={{ flex: 1, minWidth: 80, background: 'rgba(46,204,113,0.15)', borderColor: 'rgba(46,204,113,0.6)' }}
-          >
-            Approve
-          </button>
-        )}
         {isApproved && (
           <button
             className="btn"

@@ -33,6 +33,12 @@ export async function getActiveDeals() {
   return data;
 }
 
+// Admin: fetch closed/cancelled deals (history)
+export async function getHistoryDeals() {
+  const { data } = await api.get('/api/deals?status=completed,cancelled');
+  return data;
+}
+
 export async function updateDeal(dealId, payload) {
   const { data } = await api.put(`/api/deals/${dealId}`, payload);
   return data;
@@ -54,6 +60,12 @@ export async function approveDeal(dealId) {
 // Admin: close a deal
 export async function closeDeal(dealId) {
   const { data } = await api.post(`/api/deals/${dealId}/close`);
+  return data;
+}
+
+// Admin: get stats (total invested, profit, investments count, deals count)
+export async function getStats() {
+  const { data } = await api.get('/api/deals/stats');
   return data;
 }
 

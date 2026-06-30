@@ -259,7 +259,7 @@ export default function DealDetails() {
                         disabled={verifying}
                         style={{ marginTop: 10, width: '100%' }}
                       >
-                        {verifying ? 'Verifying...' : 'Verify & Activate'}
+                        {verifying ? 'Approving...' : 'Approve Investor'}
                       </button>
                     )}
                   </div>

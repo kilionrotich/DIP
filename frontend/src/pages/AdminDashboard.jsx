@@ -3,7 +3,7 @@ import useAuth from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import DashboardStats from '../components/DashboardStats';
-import { getActiveDeals, cancelDeal, updateDeal, approveDeal, closeDeal } from '../services/dealService';
+import { getActiveDeals, cancelDeal, updateDeal, approveDeal, closeDeal, getHistoryDeals, getStats } from '../services/dealService';
 import { getInvestors } from '../services/investorService';
 import { getRecentAuditLogs } from '../services/auditService';
 import AdminDealCard from '../components/AdminDealCard';
@@ -85,10 +85,19 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
+  // Stats section
+  const [stats, setStats] = useState({ totalInvested: 0, totalProfit: 0, investmentsCount: 0, dealsCount: 0 });
+  const [statsLoading, setStatsLoading] = useState(false);
+
   // Active deals section
   const [activeDeals, setActiveDeals] = useState([]);
   const [activeDealsLoading, setActiveDealsLoading] = useState(false);
   const [activeDealsError, setActiveDealsError] = useState(null);
+
+  // History deals section
+  const [historyDeals, setHistoryDeals] = useState([]);
+  const [historyDealsLoading, setHistoryDealsLoading] = useState(false);
+  const [historyDealsError, setHistoryDealsError] = useState(null);
 
   const [editingDeal, setEditingDeal] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -156,6 +165,36 @@ export default function AdminDashboard() {
     }
   }
 
+  async function fetchStats() {
+    setStatsLoading(true);
+    try {
+      const res = await getStats();
+      setStats({
+        totalInvested: res?.totalInvested || 0,
+        totalProfit: res?.totalProfit || 0,
+        investmentsCount: res?.investmentsCount || 0,
+        dealsCount: res?.dealsCount || 0
+      });
+    } catch (e) {
+      console.error('Failed to load stats:', e);
+    } finally {
+      setStatsLoading(false);
+    }
+  }
+
+  async function fetchHistoryDeals() {
+    setHistoryDealsLoading(true);
+    setHistoryDealsError(null);
+    try {
+      const res = await getHistoryDeals();
+      setHistoryDeals(Array.isArray(res) ? res : res?.deals || []);
+    } catch (e) {
+      setHistoryDealsError(e?.response?.data?.error || e?.message || 'Failed to load history');
+    } finally {
+      setHistoryDealsLoading(false);
+    }
+  }
+
   async function fetchInvestors() {
     setInvestorsLoading(true);
     setInvestorsError(null);
@@ -213,6 +252,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchActiveDeals();
+    fetchStats();
   }, []);
 
   useEffect(() => {
@@ -220,6 +260,7 @@ export default function AdminDashboard() {
     if (activeTab === 'activity-log' && !auditLogsLoading && auditLogs.length === 0) fetchAuditLogs();
     if (activeTab === 'messages' && !inboxLoading && inbox.length === 0) fetchInbox();
     if (activeTab === 'investments' && !investmentsLoading && investments.length === 0) fetchInvestments();
+    if (activeTab === 'history' && !historyDealsLoading && historyDeals.length === 0) fetchHistoryDeals();
   }, [activeTab]);
 
 
@@ -417,6 +458,7 @@ export default function AdminDashboard() {
                 { key: 'messages', label: 'Messages' },
                 { key: 'investors', label: 'Investors' },
                 { key: 'investments', label: 'Investments' },
+                { key: 'history', label: 'History' },
               ].map((item, idx) => (
                 <button
                   key={`${item.key}-${idx}`}
@@ -462,7 +504,7 @@ export default function AdminDashboard() {
 
 
         <DashboardStats
-          stats={{ totalInvested: 0, profitValue: 0, investmentsCount: 0 }}
+          stats={{ totalInvested: stats.totalInvested, profitValue: stats.totalProfit, investmentsCount: stats.investmentsCount }}
           variant="admin"
         />
 
@@ -701,7 +743,7 @@ export default function AdminDashboard() {
                           disabled={verifyingInvest === invId}
                           style={{ width: '100%' }}
                         >
-                          {verifyingInvest === invId ? 'Verifying...' : 'Verify & Activate'}
+                          {verifyingInvest === invId ? 'Approving...' : 'Approve Investor'}
                         </button>
                       )}
                     </div>
@@ -849,6 +891,66 @@ export default function AdminDashboard() {
               ))}
               {!auditLogsLoading && auditLogs.length === 0 ? <div style={{ color: 'var(--muted)' }}>No recent logs.</div> : null}
             </div>
+          </>
+        ) : null}
+
+        {activeTab === 'history' ? (
+          <>
+            <h3 style={{ margin: '0 0 12px 0' }}>History</h3>
+            <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 16 }}>
+              Closed and cancelled deals with their final status.
+            </p>
+
+            {historyDealsError ? <div className="alert err">{historyDealsError}</div> : null}
+            {historyDealsLoading ? <div style={{ color: 'var(--muted)' }}>Loading history...</div> : null}
+
+            {!historyDealsLoading && historyDeals.length === 0 ? (
+              <div className="card">
+                <div style={{ color: 'var(--muted)' }}>No closed or cancelled deals.</div>
+              </div>
+            ) : (
+              <div className="row">
+                {historyDeals.map((d) => {
+                  const dealId = d.deal_id || d._id || d.id;
+                  const isCancelled = d.status === 'cancelled';
+                  return (
+                    <div
+                      key={dealId}
+                      className="card"
+                      style={{ flex: '0 0 320px', minWidth: 280, padding: 14 }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <h4 style={{ marginTop: 0, marginBottom: 0 }}>{d.title || d.name || 'Untitled deal'}</h4>
+                        <span
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 800,
+                            background: isCancelled ? 'rgba(231,76,60,0.15)' : 'rgba(155,89,182,0.15)',
+                            color: isCancelled ? '#e74c3c' : '#9b59b6',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {d.status || 'closed'}
+                        </span>
+                      </div>
+                      <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 6 }}>
+                        {d.description ? (d.description.length > 60 ? d.description.slice(0, 60) + '...' : d.description) : 'No description'}
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                        Goal: {Number(d.fixed_amount || d.goal || d.target || d.amount_required || 0).toLocaleString()} KES
+                      </div>
+                      {d.expected_return && (
+                        <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                          Expected Return: {d.expected_return}%
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         ) : null}
 

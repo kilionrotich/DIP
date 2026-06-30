@@ -7,11 +7,12 @@ export async function commitInvestment(req, res) {
   try {
     const { investor_id, deal_id, amount_invested, proof_url, transaction_id } = req.body;
 
-    // Ensure deal exists and is approved
+    // Ensure deal exists and is open for investment
     const deal = await Deal.findByPk(deal_id);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
-    if (deal.status !== 'approved') {
-      return res.status(400).json({ error: 'Deal is not approved for investment' });
+    // Allow investment in open deals (Admin creates deals with status = open)
+    if (deal.status !== 'open') {
+      return res.status(400).json({ error: `Deal is not open for investment (status: ${deal.status})` });
     }
 
     const investment = await Investment.create({

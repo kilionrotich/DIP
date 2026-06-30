@@ -4,6 +4,8 @@ import {
   createDeal,
   getDeals,
   getActiveDeals,
+  getDealsByStatus,
+  getDealStats,
   updateDeal,
   cancelDeal,
   approveDeal,
@@ -53,8 +55,8 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
     const deal = await Deal.findByPk(dealId);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-    if (deal.status !== 'approved') {
-      return res.status(400).json({ error: `Deal is not approved for investment (status: ${deal.status})` });
+    if (deal.status !== 'open') {
+      return res.status(400).json({ error: `Deal is not open for investment (status: ${deal.status})` });
     }
 
     const fixed_amount = deal.fixed_amount;
@@ -111,6 +113,38 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
 // Investors fetch all deals
 router.get('/', verifyToken, getDeals);
 
+// Admin: fetch active deals (MUST come before /:dealId to avoid conflict)
+router.get('/active', verifyToken, isAdminOrSuperAdmin, getActiveDeals);
+
+// Admin: get stats (MUST come before /:dealId to avoid conflict)
+router.get('/stats', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
+  try {
+    const Deal = (await import('../models/Deal.js')).default;
+    const Investment = (await import('../models/Investment.js')).default;
+
+    const totalDeals = await Deal.count();
+    const totalInvestments = await Investment.count();
+
+    // Sum all active investments
+    const activeInvestments = await Investment.findAll({
+      where: { status: 'active' },
+      attributes: ['amount_invested', 'profit']
+    });
+
+    const totalInvested = activeInvestments.reduce((sum, inv) => sum + Number(inv.amount_invested || 0), 0);
+    const totalProfit = activeInvestments.reduce((sum, inv) => sum + Number(inv.profit || 0), 0);
+
+    res.json({
+      totalInvested,
+      totalProfit,
+      investmentsCount: totalInvestments,
+      dealsCount: totalDeals
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Fetch single deal
 router.get('/:dealId', verifyToken, async (req, res) => {
   try {
@@ -124,9 +158,6 @@ router.get('/:dealId', verifyToken, async (req, res) => {
   }
 });
 
-// Admin: fetch active deals
-router.get('/active', verifyToken, isAdminOrSuperAdmin, getActiveDeals);
-
 // Admin: edit deal
 router.put('/:dealId', verifyToken, isAdminOrSuperAdmin, updateDeal);
 
@@ -138,5 +169,24 @@ router.post('/:dealId/approve', verifyToken, isAdminOrSuperAdmin, approveDeal);
 
 // Admin: close deal
 router.post('/:dealId/close', verifyToken, isAdminOrSuperAdmin, closeDeal);
+
+// Get investments for a specific deal (Admin/Investor)
+router.get('/:dealId/investments', verifyToken, async (req, res) => {
+  try {
+    const { dealId } = req.params;
+    const Investment = (await import('../models/Investment.js')).default;
+    const User = (await import('../models/User.js')).default;
+
+    const investments = await Investment.findAll({
+      where: { deal_id: dealId },
+      include: [{ model: User, as: 'investor', attributes: ['user_id', 'username', 'email'] }],
+      order: [['investment_id', 'DESC']]
+    });
+
+    res.json({ investments });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;
