@@ -1033,13 +1033,15 @@ export default function AdminDashboard() {
     setMessage(null);
     setError(null);
     try {
-      await api.put('/api/profits', profitForm);
+      await api.put('/api/profits/' + profitForm.investment_id, { profit: profitForm.profit });
       setMessage('Profit updated successfully!');
     } catch (err) {
       setError(err.response?.data?.error || 'Error updating profit');
     }
   }
 }
+
+
 
 
 
