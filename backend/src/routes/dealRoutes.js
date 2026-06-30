@@ -4,6 +4,7 @@ import {
   createDeal,
   getDeals,
   getActiveDeals,
+  getInProgressDeals,
   updateDeal,
   cancelDeal,
   approveDeal,
@@ -111,8 +112,13 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
 // Investors fetch all deals
 router.get('/', verifyToken, getDeals);
 
-// Admin: fetch active deals (MUST come before /:dealId to avoid conflict)
-router.get('/active', verifyToken, isAdminOrSuperAdmin, getActiveDeals);
+// Admin: fetch Available Opportunities (open deals without active investments)
+// Must come before /:dealId and /active to avoid conflict
+router.get('/available', verifyToken, isAdminOrSuperAdmin, getActiveDeals);
+
+// Admin/Investor: fetch Active Deals (deals WITH active investments)
+// Must come before /:dealId to avoid conflict
+router.get('/active', verifyToken, getInProgressDeals);
 
 // Admin: get stats (MUST come before /:dealId to avoid conflict)
 router.get('/stats', verifyToken, isAdminOrSuperAdmin, async (req, res) => {

@@ -97,13 +97,60 @@ export async function getDeals(req, res) {
   }
 }
 
-// Get active/open deals
+// Get Available Opportunities (open deals WITHOUT active investments)
+// Lifecycle: Open deals -> no committed investors yet
 export async function getActiveDeals(req, res) {
   try {
+    const Investment = (await import('../models/Investment.js')).default;
+
+    // Find all open deals
     const deals = await Deal.findAll({
       where: { status: 'open' },
       order: [['deal_id', 'DESC']],
     });
+
+    // Filter out deals that already have active investments (Available Opportunities only)
+    const availableDeals = [];
+    for (const deal of deals) {
+      const activeInvestment = await Investment.findOne({
+        where: {
+          deal_id: deal.deal_id,
+          status: 'active',
+        },
+      });
+      if (!activeInvestment) {
+        availableDeals.push(deal);
+      }
+    }
+
+    res.json(availableDeals);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// Get Active Deals (deals WITH active investments)
+// Lifecycle: Deal has active investment and Admin verified payment
+export async function getInProgressDeals(req, res) {
+  try {
+    const Investment = (await import('../models/Investment.js')).default;
+
+    // Find all active investments and get their deal_ids
+    const activeInvestments = await Investment.findAll({
+      where: { status: 'active' },
+      attributes: ['deal_id'],
+    });
+
+    const dealIdsWithActive = [...new Set(activeInvestments.map(inv => inv.deal_id))];
+
+    // Fetch deals that have active investments
+    const deals = await Deal.findAll({
+      where: {
+        deal_id: dealIdsWithActive,
+      },
+      order: [['deal_id', 'DESC']],
+    });
+
     res.json(deals);
   } catch (err) {
     res.status(500).json({ error: err.message });

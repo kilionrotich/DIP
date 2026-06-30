@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git add backend/src/controllers/dealController.js backend/src/routes/dealRoutes.js)",
       "Bash(git commit -m \"Fix backend 500 errors: status filter and dealId type\")",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(git add backend/src/controllers/investmentController.js frontend/src/pages/AdminDashboard.jsx frontend/src/services/dealService.js)",
+      "Bash(git commit -m \"Deal lifecycle: Available Opportunities vs Active Deals\")"
     ]
   }
 }

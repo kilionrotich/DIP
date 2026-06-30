@@ -28,15 +28,15 @@ export async function createDeal(payload) {
   return data;
 }
 
-// Admin: fetch open deals (Available Opportunities)
-export async function getActiveDeals() {
-  const { data } = await api.get('/api/deals?status=open');
+// Admin: fetch Available Opportunities (open deals without active investments)
+export async function getAvailableDeals() {
+  const { data } = await api.get('/api/deals/available');
   return data;
 }
 
-// Admin/Investor: fetch active deals (Active Deals section - deal has active investment)
+// Admin/Investor: fetch Active Deals (deals WITH active investments)
 export async function getInProgressDeals() {
-  const { data } = await api.get('/api/deals?status=active');
+  const { data } = await api.get('/api/deals/active');
   return data;
 }
 
