@@ -68,3 +68,34 @@ export async function getMessages(req, res) {
   }
 }
 
+// Admin verifies a message (marks as verified or important).
+export async function verifyMessage(req, res) {
+  try {
+    const messageId = req.params.messageId || req.body.message_id;
+    if (!messageId) return res.status(400).json({ error: 'Missing message_id' });
+
+    await Message.update(
+      { status: 'verified' },
+      { where: { message_id: messageId } }
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+}
+
+// Admin deletes a message.
+export async function deleteMessage(req, res) {
+  try {
+    const messageId = req.params.messageId || req.body.message_id;
+    if (!messageId) return res.status(400).json({ error: 'Missing message_id' });
+
+    await Message.destroy({ where: { message_id: messageId } });
+
+    res.json({ success: true });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+}
+

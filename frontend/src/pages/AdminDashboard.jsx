@@ -1,34 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../hooks/useAuth';
-import DashboardStats from '../../components/dashboardStats';
-
-// ✅ Deal lifecycle services
-import {
-  getDeals,
-  getActiveDeals,
-  approveDeal,
-  cancelDeal,
-  closeDeal,
-  createDeal,
-  updateDeal
-} from '../../services/dealService';
-
-// ✅ Investment lifecycle services
-import {
-  getInvestments,
-  verifyInvestment,
-  updateProfit
-} from '../../services/investmentService';
-
-// ✅ Messaging services
-import {
-  getMessages,
-  verifyMessage,
-  deleteMessage
-} from '../../services/messageService';
-
-// ✅ Styles
-import '../../styles/adminSidebar.css';
+import React, { useEffect, useMemo, useState } from 'react';
+import useAuth from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import DashboardStats from '../components/DashboardStats';
+import { getActiveDeals, cancelDeal, updateDeal, approveDeal, closeDeal } from '../services/dealService';
+import { getInvestors } from '../services/investorService';
+import { getRecentAuditLogs } from '../services/auditService';
+import AdminDealCard from '../components/AdminDealCard';
+import { getInboxMessages, sendMessage } from '../services/messageService';
+import { getInvestments, verifyInvestment, updateProfit } from '../services/investmentService';
+import '../styles/adminSidebar.css';
 
 function Avatar({ name, role, photoUrl }) {
   const initials = useMemo(() => {
