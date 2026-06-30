@@ -48,15 +48,34 @@ export async function verifyInvestment(req, res) {
   }
 }
 
-// Admin updates profit for an investment
+// Admin updates profit for an investment (with validation)
 export async function updateProfit(req, res) {
   try {
     const { investmentId } = req.params;
     const { profit } = req.body;
 
+    if (profit === undefined) {
+      return res.status(400).json({ error: 'Profit amount is required' });
+    }
+
     const investment = await Investment.findByPk(investmentId);
     if (!investment) return res.status(404).json({ error: 'Investment not found' });
 
+    // Check: investment status must be active
+    if (investment.status !== 'active') {
+      return res.status(400).json({ error: `Investment status must be 'active' to update profit (current: ${investment.status})` });
+    }
+
+    // Check: deal status must be open or in-progress
+    const deal = await Deal.findByPk(investment.deal_id);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    const validDealStatuses = ['open', 'active', 'in_progress'];
+    if (!validDealStatuses.includes(deal.status?.toLowerCase())) {
+      return res.status(400).json({ error: `Deal status must be 'open' or 'active' to update profit (current: ${deal.status})` });
+    }
+
+    // All validations passed - update profit
     await investment.update({ profit });
     return res.json({ message: 'Profit updated', investment });
   } catch (err) {
