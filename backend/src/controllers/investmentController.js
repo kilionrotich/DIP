@@ -30,7 +30,7 @@ export async function commitInvestment(req, res) {
   }
 }
 
-// Admin verifies investment (status = active)
+// Admin verifies investment (status = active, deal = active)
 export async function verifyInvestment(req, res) {
   try {
     const { investmentId } = req.params;
@@ -41,7 +41,15 @@ export async function verifyInvestment(req, res) {
       return res.status(400).json({ error: 'Only pending investments can be verified' });
     }
 
+    // Update investment status to active
     await investment.update({ status: 'active' });
+
+    // Update deal status to active (moves from Available Opportunities to Active Deals)
+    const deal = await Deal.findByPk(investment.deal_id);
+    if (deal && deal.status === 'open') {
+      await deal.update({ status: 'active' });
+    }
+
     return res.json({ message: 'Investment verified', investment });
   } catch (err) {
     return res.status(400).json({ error: err.message });

@@ -3,7 +3,7 @@ import useAuth from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import DashboardStats from '../components/DashboardStats';
-import { getActiveDeals, cancelDeal, updateDeal, approveDeal, closeDeal, getHistoryDeals, getStats } from '../services/dealService';
+import { getActiveDeals, getInProgressDeals, cancelDeal, updateDeal, approveDeal, closeDeal, getHistoryDeals, getStats } from '../services/dealService';
 import { getInvestors } from '../services/investorService';
 import { getRecentAuditLogs } from '../services/auditService';
 import AdminDealCard from '../components/AdminDealCard';
@@ -89,10 +89,14 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ totalInvested: 0, totalProfit: 0, investmentsCount: 0, dealsCount: 0 });
   const [statsLoading, setStatsLoading] = useState(false);
 
-  // Active deals section
+  // Active deals section (status=active - deals with active investments)
   const [activeDeals, setActiveDeals] = useState([]);
   const [activeDealsLoading, setActiveDealsLoading] = useState(false);
   const [activeDealsError, setActiveDealsError] = useState(null);
+
+  // Available Opportunities (status=open - investors can commit)
+  const [availableDeals, setAvailableDeals] = useState([]);
+  const [availableDealsLoading, setAvailableDealsLoading] = useState(false);
 
   // History deals section
   const [historyDeals, setHistoryDeals] = useState([]);
@@ -152,16 +156,30 @@ export default function AdminDashboard() {
   const [auditLogsLoading, setAuditLogsLoading] = useState(false);
   const [auditLogsError, setAuditLogsError] = useState(null);
 
+  // Fetch deals with active investments (status=active)
   async function fetchActiveDeals() {
     setActiveDealsLoading(true);
     setActiveDealsError(null);
     try {
-      const res = await getActiveDeals();
+      const res = await getInProgressDeals();
       setActiveDeals(Array.isArray(res) ? res : res?.deals || []);
     } catch (e) {
       setActiveDealsError(e?.response?.data?.error || e?.message || 'Failed to load active deals');
     } finally {
       setActiveDealsLoading(false);
+    }
+  }
+
+  // Fetch available deals for investors (status=open)
+  async function fetchAvailableDeals() {
+    setAvailableDealsLoading(true);
+    try {
+      const res = await getActiveDeals();
+      setAvailableDeals(Array.isArray(res) ? res : res?.deals || []);
+    } catch (e) {
+      console.error('Failed to load available deals:', e);
+    } finally {
+      setAvailableDealsLoading(false);
     }
   }
 
@@ -252,6 +270,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchActiveDeals();
+    fetchAvailableDeals();
     fetchStats();
   }, []);
 
@@ -291,6 +310,7 @@ export default function AdminDashboard() {
       setMessage('Deal cancelled successfully');
       setEditingDeal(null);
       await fetchActiveDeals();
+      await fetchAvailableDeals();
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || 'Failed to cancel deal');
     }
@@ -324,6 +344,7 @@ export default function AdminDashboard() {
       setMessage('Deal updated successfully');
       setEditingDeal(null);
       await fetchActiveDeals();
+      await fetchAvailableDeals();
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || 'Failed to update deal');
     }
@@ -367,6 +388,7 @@ export default function AdminDashboard() {
         end_date: '',
       });
       await fetchActiveDeals();
+      await fetchAvailableDeals();
       setActiveTab('active-deals');
     } catch (err) {
       setError(err.response?.data?.error || 'Error creating deal');
@@ -513,6 +535,24 @@ export default function AdminDashboard() {
         {activeTab === 'active-deals' ? (
 
           <>
+            {/* Available Opportunities - investors can commit */}
+            <h3 style={{ margin: '0 0 12px 0' }}>Available Opportunities</h3>
+            {availableDealsLoading ? <div>Loading...</div> : null}
+            <div className="row">
+              {availableDeals.map((d) => (
+                <AdminDealCard
+                  key={`avail-${d.deal_id || d._id || d.id}`}
+                  deal={d}
+                />
+              ))}
+            </div>
+            {!availableDealsLoading && availableDeals.length === 0 ? (
+              <div style={{ color: 'var(--muted)', marginBottom: 20 }}>No available deals for investment.</div>
+            ) : null}
+
+            <div style={{ height: 20 }} />
+
+            {/* Active Deals - deals with active investments */}
             <h3 style={{ margin: '0 0 12px 0' }}>Active Deals</h3>
             {activeDealsError ? <div className="alert err">{activeDealsError}</div> : null}
             {activeDealsLoading ? <div>Loading active deals...</div> : null}
