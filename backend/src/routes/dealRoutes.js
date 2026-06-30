@@ -2,7 +2,6 @@
 import express from 'express';
 import {
   createDeal, getStats,
-  getStats,
   getDeals,
   getActiveDeals,
   getInProgressDeals,
@@ -197,6 +196,7 @@ router.get('/:dealId/investments', verifyToken, async (req, res) => {
 );
 
 export default router;
+
 
 
 
