@@ -3,7 +3,7 @@ import useAuth from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import DashboardStats from '../components/DashboardStats';
-import { getActiveDeals, getInProgressDeals, cancelDeal, updateDeal, approveDeal, closeDeal, getHistoryDeals, getStats } from '../services/dealService';
+import { getAvailableDeals, getInProgressDeals, cancelDeal, updateDeal, approveDeal, closeDeal, getHistoryDeals, getStats } from '../services/dealService';
 import { getInvestors } from '../services/investorService';
 import { getRecentAuditLogs } from '../services/auditService';
 import AdminDealCard from '../components/AdminDealCard';
@@ -174,7 +174,7 @@ export default function AdminDashboard() {
   async function fetchAvailableDeals() {
     setAvailableDealsLoading(true);
     try {
-      const res = await getActiveDeals();
+      const res = await getAvailableDeals();
       setAvailableDeals(Array.isArray(res) ? res : res?.deals || []);
     } catch (e) {
       console.error('Failed to load available deals:', e);
@@ -1040,4 +1040,5 @@ export default function AdminDashboard() {
     }
   }
 }
+
 
