@@ -2,7 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import useAuth from '../hooks/useAuth';
 import api from '../services/api';
 import DashboardStats from '../components/DashboardStats';
-import { getActiveDeals, cancelDeal, updateDeal } from '../services/dealService';
+import { getDeals, cancelDeal, updateDeal, approveDeal, closeDeal } from '../services/dealService';
+import {
+  getInvestments,
+  verifyInvestment,
+  rejectInvestment,
+  getInvestmentSummary,
+} from '../services/investmentService';
 import { getInvestors } from '../services/investorService';
 import { getRecentAuditLogs } from '../services/auditService';
 import AdminDealCard from '../components/AdminDealCard';
@@ -42,6 +48,35 @@ function Avatar({ name, role, photoUrl }) {
 
 function SidebarSectionTitle({ children }) {
   return <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, fontWeight: 800 }}>{children}</div>;
+}
+
+function DealColumn({ title, hint, deals, onApprove, onClose, onCancel, onEdit }) {
+  const list = Array.isArray(deals) ? deals : [];
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+        <h4 style={{ margin: 0 }}>{title}</h4>
+        <span style={{ color: 'var(--muted)', fontSize: 12 }}>{hint}</span>
+        <span style={{ marginLeft: 'auto', color: 'var(--muted)', fontSize: 12 }}>{list.length}</span>
+      </div>
+      {list.length === 0 ? (
+        <div style={{ color: 'var(--muted)', fontSize: 13 }}>None.</div>
+      ) : (
+        <div className="row">
+          {list.map((d) => (
+            <AdminDealCard
+              key={d.deal_id || d._id || d.id}
+              deal={d}
+              onApprove={onApprove}
+              onClose={onClose}
+              onCancel={onCancel}
+              onEdit={onEdit}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminDashboard() {
@@ -84,10 +119,15 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
-  // Active deals section
+  // Deals section (all deals, grouped by lifecycle status)
   const [activeDeals, setActiveDeals] = useState([]);
   const [activeDealsLoading, setActiveDealsLoading] = useState(false);
   const [activeDealsError, setActiveDealsError] = useState(null);
+
+  // All investments (admin) + dashboard summary
+  const [investments, setInvestments] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const [editingDeal, setEditingDeal] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -140,12 +180,35 @@ export default function AdminDashboard() {
     setActiveDealsLoading(true);
     setActiveDealsError(null);
     try {
-      const res = await getActiveDeals();
+      // Admin sees every deal regardless of status (grouped into lifecycle columns)
+      const res = await getDeals({});
       setActiveDeals(Array.isArray(res) ? res : res?.deals || []);
     } catch (e) {
-      setActiveDealsError(e?.response?.data?.error || e?.message || 'Failed to load active deals');
+      setActiveDealsError(e?.response?.data?.error || e?.message || 'Failed to load deals');
     } finally {
       setActiveDealsLoading(false);
+    }
+  }
+
+  async function fetchInvestments() {
+    try {
+      const res = await getInvestments();
+      setInvestments(Array.isArray(res) ? res : res?.investments || []);
+    } catch (e) {
+      // non-fatal for the board
+      setInvestments([]);
+    }
+  }
+
+  async function fetchSummary() {
+    setSummaryLoading(true);
+    try {
+      const res = await getInvestmentSummary();
+      setSummary(res || null);
+    } catch (e) {
+      setSummary(null);
+    } finally {
+      setSummaryLoading(false);
     }
   }
 
@@ -177,7 +240,80 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchActiveDeals();
+    fetchInvestments();
+    fetchSummary();
   }, []);
+
+  // Group deals by lifecycle status for the admin board.
+  const dealsByStatus = useMemo(() => {
+    const groups = { open: [], approved: [], completed: [], cancelled: [] };
+    (activeDeals || []).forEach((d) => {
+      const s = String(d.status || 'open').toLowerCase();
+      if (groups[s]) groups[s].push(d);
+      else groups.open.push(d);
+    });
+    return groups;
+  }, [activeDeals]);
+
+  // Investments awaiting admin verification (lifecycle: Pending column).
+  const pendingInvestments = useMemo(
+    () => (investments || []).filter((i) => String(i.status || '').toLowerCase() === 'pending'),
+    [investments]
+  );
+
+  async function refreshBoard() {
+    await Promise.all([fetchActiveDeals(), fetchInvestments(), fetchSummary()]);
+  }
+
+  async function onApproveDeal(deal) {
+    setMessage(null);
+    setError(null);
+    try {
+      const dealId = deal?._id ?? deal?.deal_id ?? deal?.id;
+      await approveDeal(dealId);
+      setMessage('Deal approved and visible to investors');
+      await refreshBoard();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to approve deal');
+    }
+  }
+
+  async function onCloseDeal(deal) {
+    setMessage(null);
+    setError(null);
+    try {
+      const dealId = deal?._id ?? deal?.deal_id ?? deal?.id;
+      await closeDeal(dealId);
+      setMessage('Deal closed and moved to history');
+      await refreshBoard();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to close deal');
+    }
+  }
+
+  async function onVerifyInvestment(inv) {
+    setMessage(null);
+    setError(null);
+    try {
+      await verifyInvestment(inv.investment_id ?? inv.id);
+      setMessage('Investment verified and marked active');
+      await refreshBoard();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to verify investment');
+    }
+  }
+
+  async function onRejectInvestment(inv) {
+    setMessage(null);
+    setError(null);
+    try {
+      await rejectInvestment(inv.investment_id ?? inv.id);
+      setMessage('Investment proof rejected');
+      await refreshBoard();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to reject investment');
+    }
+  }
 
   useEffect(() => {
     if (activeTab === 'investors' && !investorsLoading && investors.length === 0) fetchInvestors();
@@ -424,7 +560,12 @@ export default function AdminDashboard() {
 
 
         <DashboardStats
-          stats={{ totalInvested: 0, profitValue: 0, investmentsCount: 0 }}
+          loading={summaryLoading}
+          stats={{
+            totalInvested: summary?.totalInvested ?? 0,
+            profitValue: summary?.profits ?? 0,
+            investmentsCount: summary?.investmentsCount ?? 0,
+          }}
           variant="admin"
         />
 
@@ -433,23 +574,93 @@ export default function AdminDashboard() {
         {activeTab === 'active-deals' ? (
 
           <>
-            <h3 style={{ margin: '0 0 12px 0' }}>Active Deals</h3>
+            <h3 style={{ margin: '0 0 12px 0' }}>Deal Lifecycle</h3>
             {activeDealsError ? <div className="alert err">{activeDealsError}</div> : null}
-            {activeDealsLoading ? <div>Loading active deals...</div> : null}
+            {activeDealsLoading ? <div>Loading deals...</div> : null}
 
-            <div className="row">
-              {activeDeals.map((d) => (
-                <AdminDealCard
-                  key={d.deal_id || d._id || d.id}
-                  deal={d}
-                  onCancel={onCancelDeal}
-                  onEdit={(deal) => setEditingDeal(deal)}
-                />
-              ))}
+            <DealColumn
+              title="Active (Created)"
+              hint="New deals awaiting approval"
+              deals={dealsByStatus.open}
+              onApprove={onApproveDeal}
+              onClose={onCloseDeal}
+              onCancel={onCancelDeal}
+              onEdit={(deal) => setEditingDeal(deal)}
+            />
+
+            <DealColumn
+              title="Approved (Live to investors)"
+              hint="Visible to investors; open for commitments"
+              deals={dealsByStatus.approved}
+              onApprove={onApproveDeal}
+              onClose={onCloseDeal}
+              onCancel={onCancelDeal}
+              onEdit={(deal) => setEditingDeal(deal)}
+            />
+
+            {/* Pending column: investor commitments awaiting verification */}
+            <div className="card" style={{ marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+                <h4 style={{ margin: 0 }}>Pending Verification</h4>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Investor commitments awaiting proof verification</span>
+                <span style={{ marginLeft: 'auto', color: 'var(--muted)', fontSize: 12 }}>{pendingInvestments.length}</span>
+              </div>
+              {pendingInvestments.length === 0 ? (
+                <div style={{ color: 'var(--muted)', fontSize: 13 }}>No pending investments.</div>
+              ) : (
+                pendingInvestments.map((inv) => (
+                  <div
+                    key={inv.investment_id || inv.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 0',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800 }}>{inv.Deal?.title || `Deal #${inv.deal_id}`}</div>
+                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>
+                        Investor #{inv.investor_id} · {Number(inv.amount_invested ?? 0).toLocaleString()} KES
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn primary" type="button" onClick={() => onVerifyInvestment(inv)} style={{ padding: '8px 12px' }}>
+                        Verify
+                      </button>
+                      <button className="btn danger" type="button" onClick={() => onRejectInvestment(inv)} style={{ padding: '8px 12px' }}>
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
+            <DealColumn
+              title="History — Completed"
+              hint="Closed deals moved to history"
+              deals={dealsByStatus.completed}
+              onApprove={onApproveDeal}
+              onClose={onCloseDeal}
+              onCancel={onCancelDeal}
+              onEdit={(deal) => setEditingDeal(deal)}
+            />
+
+            <DealColumn
+              title="History — Cancelled (locked)"
+              hint="Cancelled deals; investor side locked"
+              deals={dealsByStatus.cancelled}
+              onApprove={onApproveDeal}
+              onClose={onCloseDeal}
+              onCancel={onCancelDeal}
+              onEdit={(deal) => setEditingDeal(deal)}
+            />
+
             {!activeDealsLoading && activeDeals.length === 0 ? (
-              <div style={{ color: 'var(--muted)' }}>No active deals.</div>
+              <div style={{ color: 'var(--muted)' }}>No deals yet.</div>
             ) : null}
 
             {editingDeal ? (
@@ -766,7 +977,7 @@ export default function AdminDashboard() {
     setMessage(null);
     setError(null);
     try {
-      await api.post('/investments', investmentForm);
+      await api.post('/api/investments', investmentForm);
       setMessage('Investment recorded successfully!');
     } catch (err) {
       setError(err.response?.data?.error || 'Error recording investment');
@@ -778,8 +989,9 @@ export default function AdminDashboard() {
     setMessage(null);
     setError(null);
     try {
-      await api.put('/profits', profitForm);
+      await api.put('/api/profits', profitForm);
       setMessage('Profit updated successfully!');
+      await refreshBoard();
     } catch (err) {
       setError(err.response?.data?.error || 'Error updating profit');
     }

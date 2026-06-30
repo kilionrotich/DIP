@@ -23,3 +23,21 @@ export async function getProfits() {
   return data;
 }
 
+// Admin: verify an investment's proof and mark it active.
+export async function verifyInvestment(investmentId) {
+  const { data } = await api.post(`/api/investments/${investmentId}/verify`, {});
+  return data;
+}
+
+// Admin: reject an investment's proof (keeps it pending).
+export async function rejectInvestment(investmentId, reason) {
+  const { data } = await api.post(`/api/investments/${investmentId}/reject`, { reason });
+  return data;
+}
+
+// Role-aware dashboard summary (Total Invested, Profits, ROI, counts).
+export async function getInvestmentSummary() {
+  const { data } = await api.get('/api/investments/summary');
+  return data;
+}
+

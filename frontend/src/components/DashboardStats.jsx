@@ -30,7 +30,7 @@ export default function DashboardStats({ loading, stats, variant }) {
       </div>
       {variant === 'admin' ? (
         <div style={{ color: 'var(--muted)', marginTop: 10, fontSize: 13 }}>
-          Admin stats will be wired after backend endpoints are confirmed.
+          Totals update automatically from investments and profits.
         </div>
       ) : null}
     </div>

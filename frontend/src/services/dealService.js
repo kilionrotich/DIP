@@ -43,6 +43,18 @@ export async function cancelDeal(dealId, { hardDelete = false } = {}) {
   return data;
 }
 
+// Admin: approve a deal so it becomes visible to investors.
+export async function approveDeal(dealId) {
+  const { data } = await api.post(`/api/deals/${dealId}/approve`, {});
+  return data;
+}
+
+// Admin: close a deal (mark completed, move investors to history).
+export async function closeDeal(dealId) {
+  const { data } = await api.post(`/api/deals/${dealId}/close`, {});
+  return data;
+}
+
 export async function verifyPayment(investmentIdOrProofId) {
   // Backend may differ; keep flexible by sending id
   const { data } = await api.post(`/api/payments/verify`, { id: investmentIdOrProofId });

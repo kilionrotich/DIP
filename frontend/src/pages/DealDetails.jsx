@@ -50,6 +50,9 @@ export default function DealDeatails() {
     return deal?.title || deal?.name || `Deal ${deal?._id || deal?.id || ''}`;
   }, [deal]);
 
+  const isInvestor = (user?.role || user?.type) === 'investor';
+  const canCommit = String(deal?.status || '').toLowerCase() === 'approved';
+
   async function onCommit(payload) {
     setCommitStatus(null);
     setSubmitted(false);
@@ -84,7 +87,11 @@ export default function DealDeatails() {
             <div className="row">
               <div style={{ flex: 1, minWidth: 160 }}>
                 <div style={{ color: 'var(--muted)', fontSize: 13 }}>Investment Goal</div>
-                <div style={{ fontWeight: 800 }}>{deal?.goal || deal?.target || '-'}</div>
+                <div style={{ fontWeight: 800 }}>
+                  {deal?.fixed_amount != null && !Number.isNaN(Number(deal.fixed_amount))
+                    ? `${Number(deal.fixed_amount).toLocaleString()} KES`
+                    : deal?.amount_required ?? '-'}
+                </div>
               </div>
               <div style={{ flex: 1, minWidth: 160 }}>
                 <div style={{ color: 'var(--muted)', fontSize: 13 }}>Status</div>
@@ -108,16 +115,39 @@ export default function DealDeatails() {
           </div>
 
           <div className="card" style={{ flex: 1, minWidth: 320 }}>
-            <h3 style={{ marginTop: 0 }}>Deal Details</h3>
+            <h3 style={{ marginTop: 0 }}>Commit Investment</h3>
 
-            <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 10 }}>
-              Admin view: show how many investors have selected this deal.
-              Investor view: committing is handled on the Investor dashboard flow.
-            </div>
+            {commitStatus ? (
+              <div className={`alert ${commitStatus.type === 'ok' ? 'ok' : commitStatus.type === 'err' ? 'err' : ''}`} style={{ marginBottom: 12 }}>
+                {commitStatus.text}
+              </div>
+            ) : null}
 
-            <div className="alert" style={{ marginBottom: 12 }}>
-              Investor count placeholder (backend endpoint not wired yet).
-            </div>
+            {isInvestor ? (
+              canCommit ? (
+                submitted ? (
+                  <div style={{ color: 'var(--muted)' }}>
+                    Your commitment is recorded and awaiting admin verification.
+                  </div>
+                ) : (
+                  <InvestmentForm
+                    dealId={id}
+                    user={user}
+                    fixedAmount={deal?.fixed_amount}
+                    onSubmit={onCommit}
+                  />
+                )
+              ) : (
+                <div className="alert" style={{ marginBottom: 12 }}>
+                  This deal is <b>{deal?.status || 'not approved'}</b>. Investments are only
+                  allowed on approved deals.
+                </div>
+              )
+            ) : (
+              <div style={{ color: 'var(--muted)', fontSize: 13 }}>
+                Admin view: investor commitments are managed from the admin dashboard.
+              </div>
+            )}
           </div>
 
         </div>
