@@ -115,7 +115,7 @@ export async function getActiveDeals(req, res) {
       const activeInvestment = await Investment.findOne({
         where: {
           deal_id: deal.deal_id,
-          status: 'active',
+          status: { [Op.or]: ['active', 'pending'] },
         },
       });
       if (!activeInvestment) {
@@ -137,7 +137,7 @@ export async function getInProgressDeals(req, res) {
 
     // Find all active investments and get their deal_ids
     const activeInvestments = await Investment.findAll({
-      where: { status: 'active' },
+      where: { status: { [Op.or]: ['active', 'pending'] } },
       attributes: ['deal_id'],
     });
 
