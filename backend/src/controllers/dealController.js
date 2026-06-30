@@ -1,6 +1,18 @@
 // backend/src/controllers/dealController.js
+import { Op } from 'sequelize';
 import Deal from '../models/Deal.js';
 import Investment from '../models/Investment.js';
+import { actorId, logAudit, notifyInvestors } from '../utils/lifecycle.js';
+
+// Helper: collect investor ids that have a (non-refunded) investment in a deal.
+async function investorIdsForDeal(dealId) {
+  const rows = await Investment.findAll({
+    where: { deal_id: dealId },
+    attributes: ['investor_id'],
+    raw: true,
+  });
+  return rows.map((r) => r.investor_id).filter(Boolean);
+}
 
 // Create a new deal (Admin only)
 export async function createDeal(req, res) {
@@ -75,6 +87,12 @@ export async function getDeals(req, res) {
 
     const where = {};
     if (status) where.status = status;
+
+    // Visibility rule: investors may only ever see deals the admin has approved.
+    // Any status filter they pass is ignored in favour of 'approved'.
+    if (req.user?.role === 'investor') {
+      where.status = 'approved';
+    }
 
     // Deadline filter (end_date)
     if (deadline) {
@@ -176,27 +194,111 @@ export async function updateDeal(req, res) {
   }
 }
 
+// Approve a deal so it becomes visible to investors (admin/super-admin).
+// Lifecycle: open ("Active") -> approved.
+export async function approveDeal(req, res) {
+  try {
+    const { dealId } = req.params;
+
+    const deal = await Deal.findByPk(dealId);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    if (deal.status === 'cancelled' || deal.status === 'completed') {
+      return res.status(400).json({ error: `Cannot approve a ${deal.status} deal` });
+    }
+    if (deal.status === 'approved') {
+      return res.status(400).json({ error: 'Deal is already approved' });
+    }
+
+    await deal.update({ status: 'approved' });
+    await logAudit({ user_id: actorId(req), action: `Approved deal "${deal.title}"`, target_id: deal.deal_id });
+
+    return res.json({ message: 'Deal approved', deal });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+}
+
+// Close a deal once it has run its course (admin/super-admin).
+// Lifecycle: approved -> completed; investor investments move to history (completed).
+export async function closeDeal(req, res) {
+  try {
+    const { dealId } = req.params;
+
+    const deal = await Deal.findByPk(dealId);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    if (deal.status === 'cancelled') {
+      return res.status(400).json({ error: 'Cancelled deals cannot be closed' });
+    }
+    if (deal.status === 'completed') {
+      return res.status(400).json({ error: 'Deal is already completed' });
+    }
+
+    await deal.update({ status: 'completed' });
+
+    // Move active/verified investments into history as completed.
+    await Investment.update(
+      { status: 'completed' },
+      { where: { deal_id: dealId, status: { [Op.in]: ['active', 'verified', 'pending'] } } }
+    );
+
+    const investorIds = await investorIdsForDeal(dealId);
+    await notifyInvestors({
+      sender_id: actorId(req),
+      receiverIds: investorIds,
+      subject: `Deal completed: ${deal.title}`,
+      body: `The deal "${deal.title}" has been closed and marked completed. It now appears in your investment history.`,
+    });
+    await logAudit({ user_id: actorId(req), action: `Closed deal "${deal.title}"`, target_id: deal.deal_id });
+
+    return res.json({ message: 'Deal closed (completed)', deal });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+}
+
 // Cancel/delete deal (admin/super-admin)
+// Lifecycle: open/approved -> cancelled; investor side is locked (investments refunded).
 export async function cancelDeal(req, res) {
   try {
     const { dealId } = req.params;
     const { hardDelete = false } = req.body || {};
 
-
-
     const deal = await Deal.findByPk(dealId);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-  // Soft close: for safety + mirrors “cancel” semantics
+    // Soft cancel: lock the deal and the investor side.
     if (!hardDelete) {
-      if (deal.status !== 'open') {
-        return res.status(400).json({ error: 'Deal is not active' });
+      if (deal.status === 'completed') {
+        return res.status(400).json({ error: 'Completed deals cannot be cancelled' });
       }
+      if (deal.status === 'cancelled') {
+        return res.status(400).json({ error: 'Deal is already cancelled' });
+      }
+
       await deal.update({ status: 'cancelled' });
-      return res.json({ message: 'Deal cancelled (cancelled)', deal });
+
+      // Lock investor side: refund any non-completed investments.
+      await Investment.update(
+        { status: 'refunded' },
+        { where: { deal_id: dealId, status: { [Op.ne]: 'completed' } } }
+      );
+
+      const investorIds = await investorIdsForDeal(dealId);
+      await notifyInvestors({
+        sender_id: actorId(req),
+        receiverIds: investorIds,
+        subject: `Deal cancelled: ${deal.title}`,
+        body: `The deal "${deal.title}" has been cancelled by the administrator. Your commitment has been locked/refunded.`,
+      });
+      await logAudit({ user_id: actorId(req), action: `Cancelled deal "${deal.title}"`, target_id: deal.deal_id });
+
+      return res.json({ message: 'Deal cancelled', deal });
     }
 
     // Hard delete
+    await logAudit({ user_id: actorId(req), action: `Deleted deal "${deal.title}"`, target_id: deal.deal_id });
     await deal.destroy();
     return res.json({ message: 'Deal deleted', dealId });
   } catch (err) {

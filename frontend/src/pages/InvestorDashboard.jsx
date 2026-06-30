@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import useAuth from '../hooks/useAuth';
 import useDeals from '../hooks/useDeals';
-import { getProfits, getInvestments } from '../services/investmentService';
+import { getProfits, getInvestments, getInvestmentSummary } from '../services/investmentService';
 import DealCrad from '../components/DealCrad';
 
 import {
@@ -16,13 +16,12 @@ import {
 
 export default function InvestorDashboard() {
   const { user, logout } = useAuth();
-  const { deals, loading: dealsLoading, error: dealsError } = useDeals({ status: 'open' });
-
-
-
+  // Backend enforces investor visibility: only approved deals are returned.
+  const { deals, loading: dealsLoading, error: dealsError } = useDeals({});
 
   const [investments, setInvestments] = useState([]);
   const [profitsRows, setProfitsRows] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -32,9 +31,10 @@ export default function InvestorDashboard() {
       setLoading(true);
       setError(null);
       try {
-        const [invRes, profRes] = await Promise.all([
+        const [invRes, profRes, sumRes] = await Promise.all([
           getInvestments().catch(() => []),
           getProfits().catch(() => []),
+          getInvestmentSummary().catch(() => null),
         ]);
 
         if (!mounted) return;
@@ -45,6 +45,8 @@ export default function InvestorDashboard() {
         // backend returns Profit.findAll => array
         const profList = Array.isArray(profRes) ? profRes : profRes?.profits || [];
         setProfitsRows(profList);
+
+        setSummary(sumRes || null);
       } catch (e) {
         if (!mounted) return;
         setError(e?.message || 'Failed to load dashboard');
@@ -60,6 +62,17 @@ export default function InvestorDashboard() {
   }, []);
 
   const kpis = useMemo(() => {
+    // Prefer the backend summary (authoritative, auto-updated). Fall back to a
+    // client-side computation if the summary endpoint is unavailable.
+    if (summary) {
+      return {
+        totalInvested: summary.totalInvested ?? 0,
+        currentValue: summary.currentValue ?? 0,
+        roi: summary.roi ?? 0,
+        profits: summary.profits ?? 0,
+      };
+    }
+
     const totalInvested = (investments || []).reduce(
       (sum, i) => sum + Number(i.amount_invested ?? i.amount ?? 0),
       0
@@ -79,7 +92,7 @@ export default function InvestorDashboard() {
       roi,
       profits: profitsTotal,
     };
-  }, [investments, profitsRows]);
+  }, [investments, profitsRows, summary]);
 
   return (
     <div className="container">
@@ -105,8 +118,11 @@ export default function InvestorDashboard() {
 
       <div style={{ height: 18 }} />
 
-      {/* Deals (Open to invest) */}
+      {/* Deals (approved & open to invest) */}
       <h3 style={{ margin: '0 0 12px 0' }}>Available Deals</h3>
+      <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 10 }}>
+        Only deals approved by the admin are shown here.
+      </div>
 
 
 
