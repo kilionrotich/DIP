@@ -1,7 +1,8 @@
 // backend/src/routes/dealRoutes.js
 import express from 'express';
 import {
-  createDeal,
+  createDeal, getStats,
+  getStats,
   getDeals,
   getActiveDeals,
   getInProgressDeals,
@@ -18,10 +19,10 @@ const router = express.Router();
 router.post('/', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
   try {
     await createDeal(req, res);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+
+    res.status(400).json({ error: err.message );
+
+);
 
 // Investor commits to a deal (creates Investment + optional PaymentProof)
 router.post('/:dealId/invest', verifyToken, async (req, res) => {
@@ -37,7 +38,7 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
       file_url,
       expected_return,
       status,
-    } = req.body || {};
+   = req.body || {};
 
     const investor_id =
       investorId ??
@@ -47,21 +48,21 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
       req.body?.investor_id;
 
     if (!investor_id) {
-      return res.status(400).json({ error: 'Missing investorId/investor_id' });
-    }
+      return res.status(400).json({ error: 'Missing investorId/investor_id' );
+  
 
     const Deal = (await import('../models/Deal.js')).default;
     const deal = await Deal.findByPk(dealId);
-    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+    if (!deal) return res.status(404).json({ error: 'Deal not found' );
 
     if (deal.status !== 'open') {
-      return res.status(400).json({ error: `Deal is not open for investment (status: ${deal.status})` });
-    }
+      return res.status(400).json({ error: `Deal is not open for investment (status: ${deal.status})` );
+  
 
     const fixed_amount = deal.fixed_amount;
     if (!fixed_amount) {
-      return res.status(400).json({ error: 'Deal is missing fixed_amount' });
-    }
+      return res.status(400).json({ error: 'Deal is missing fixed_amount' );
+  
 
     const Investment = (await import('../models/Investment.js')).default;
     const PaymentProof = (await import('../models/PaymentProof.js')).default;
@@ -72,11 +73,11 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
         investor_id,
         deal_id: dealId,
         status: { [Op.ne]: 'refunded' },
-      },
-    });
+    ,
+  );
     if (existing) {
-      return res.status(400).json({ error: 'Investment already submitted for this deal' });
-    }
+      return res.status(400).json({ error: 'Investment already submitted for this deal' );
+  
 
     const investment = await Investment.create({
       investor_id,
@@ -84,7 +85,7 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
       amount_invested: fixed_amount,
       expected_return: expected_return ?? null,
       status: status || 'pending',
-    });
+  );
 
     const resolvedTransactionId = transaction_id_from_body ?? req.body?.transaction_id;
     let resolvedFileUrl = paymentProofUrl ?? proofUrl ?? file_url;
@@ -92,22 +93,22 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
     if (!resolvedFileUrl && req.files?.length) resolvedFileUrl = req.files[0]?.path;
 
     if (!resolvedFileUrl && !resolvedTransactionId) {
-      return res.status(400).json({ error: 'Payment proof is required' });
-    }
+      return res.status(400).json({ error: 'Payment proof is required' );
+  
 
     await PaymentProof.create({
       transaction_id: resolvedTransactionId ?? null,
       file_url: resolvedFileUrl ?? null,
       status: 'pending',
       investment_id: investment.investment_id ?? investment.id,
-    });
+  );
 
     return res.status(201).json(investment);
-  } catch (err) {
-    console.error('POST /api/deals/:dealId/invest failed:', { dealId, message: err?.message });
-    return res.status(500).json({ error: err?.message || 'Internal server error' });
-  }
-});
+
+    console.error('POST /api/deals/:dealId/invest failed:', { dealId, message: err?.message );
+    return res.status(500).json({ error: err?.message || 'Internal server error' );
+
+);
 
 // Investors fetch all deals
 router.get('/', verifyToken, getDeals);
@@ -121,7 +122,7 @@ router.get('/available', verifyToken, isAdminOrSuperAdmin, getActiveDeals);
 router.get('/active', verifyToken, getInProgressDeals);
 
 // Admin: get stats (MUST come before /:dealId to avoid conflict)
-router.get('/stats', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
+router.get('/stats', verifyToken, isAdminOrSuperAdmin, getStats)
   try {
     const Deal = (await import('../models/Deal.js')).default;
     const Investment = (await import('../models/Investment.js')).default;
@@ -133,7 +134,7 @@ router.get('/stats', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
     const activeInvestments = await Investment.findAll({
       where: { status: 'active' },
       attributes: ['amount_invested', 'profit']
-    });
+  );
 
     const totalInvested = activeInvestments.reduce((sum, inv) => sum + Number(inv.amount_invested || 0), 0);
     const totalProfit = activeInvestments.reduce((sum, inv) => sum + Number(inv.profit || 0), 0);
@@ -143,11 +144,11 @@ router.get('/stats', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
       totalProfit,
       investmentsCount: totalInvestments,
       dealsCount: totalDeals
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  );
+
+
+
+);
 
 // Fetch single deal
 router.get('/:dealId', verifyToken, async (req, res) => {
@@ -155,12 +156,12 @@ router.get('/:dealId', verifyToken, async (req, res) => {
     const { dealId } = req.params;
     const Deal = (await import('../models/Deal.js')).default;
     const deal = await Deal.findByPk(dealId);
-    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+    if (!deal) return res.status(404).json({ error: 'Deal not found' );
     return res.json(deal);
-  } catch (err) {
-    return res.status(400).json({ error: err.message });
-  }
-});
+
+    return res.status(400).json({ error: err.message );
+
+);
 
 // Admin: edit deal
 router.put('/:dealId', verifyToken, isAdminOrSuperAdmin, updateDeal);
@@ -186,13 +187,18 @@ router.get('/:dealId/investments', verifyToken, async (req, res) => {
       where: { deal_id: dealIdNum },
       include: [{ model: User, as: 'investor', attributes: ['user_id', 'username', 'email'] }],
       order: [['investment_id', 'DESC']]
-    });
+  );
 
-    res.json({ investments });
-  } catch (err) {
+    res.json({ investments );
+
     console.error('Error fetching investments:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
+
+
+);
 
 export default router;
+
+
+
+
+

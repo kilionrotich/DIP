@@ -248,3 +248,31 @@ export async function closeDeal(req, res) {
 
 
 
+
+// Get admin stats
+export async function getStats(req, res) {
+  try {
+    const Deal = (await import('../models/Deal.js')).default;
+    const Investment = (await import('../models/Investment.js')).default;
+
+    const totalDeals = await Deal.count();
+    const totalInvestments = await Investment.count();
+
+    const activeInvestments = await Investment.findAll({
+      where: { status: 'active' },
+      attributes: ['amount_invested', 'profit']
+    });
+
+    const totalInvested = activeInvestments.reduce((sum, inv) => sum + Number(inv.amount_invested || 0), 0);
+    const totalProfit = activeInvestments.reduce((sum, inv) => sum + Number(inv.profit || 0), 0);
+
+    res.json({
+      totalInvested,
+      totalProfit,
+      investmentsCount: totalInvestments,
+      dealsCount: totalDeals
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
