@@ -1,4 +1,3 @@
-// backend/src/routes/investmentRoutes.js
 import express from 'express';
 import {
   createInvestment,
@@ -51,5 +50,7 @@ router.put('/:investmentId/profit', verifyToken, isAdminOrSuperAdmin, async (req
 // Investor/Admin fetch all investments (protected)
 router.get('/', verifyToken, getInvestments);
 
-// Investor: Available Opportunities (open deals without investor commitment)\nrouter.get('/available', verifyToken, getAvailableDeals);\n\nexport default router;
+// Investor: Available Opportunities
+router.get('/available', verifyToken, getAvailableDeals);
 
+export default router;
