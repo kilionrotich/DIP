@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add backend/src/controllers/dealController.js backend/src/routes/dealRoutes.js)",
+      "Bash(git commit -m \"Fix backend 500 errors: status filter and dealId type\")",
+      "Bash(git push)"
+    ]
+  }
+}
