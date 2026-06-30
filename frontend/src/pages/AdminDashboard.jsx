@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import useAuth from '../hooks/useAuth';
 import api from '../services/api';
 import DashboardStats from '../components/DashboardStats';
-import { getActiveDeals, cancelDeal, updateDeal } from '../services/dealService';
+import { getActiveDeals, cancelDeal, updateDeal, approveDeal, closeDeal } from '../services/dealService';
 import { getInvestors } from '../services/investorService';
+import { getInvestments, verifyInvestment, updateProfit } from '../services/investmentService';
 import { getRecentAuditLogs } from '../services/auditService';
 import AdminDealCard from '../components/AdminDealCard';
 import { getInboxMessages, sendMessage } from '../services/messageService';
@@ -42,6 +43,33 @@ function Avatar({ name, role, photoUrl }) {
 
 function SidebarSectionTitle({ children }) {
   return <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, fontWeight: 800 }}>{children}</div>;
+}
+
+function StatusBadge({ status }) {
+  const statusStyles = {
+    open: { bg: 'rgba(91,140,255,0.15)', color: '#5b8cff', label: 'Open' },
+    approved: { bg: 'rgba(46,204,113,0.15)', color: '#2ecc71', label: 'Approved' },
+    closed: { bg: 'rgba(241,196,15,0.15)', color: '#f1c40f', label: 'Closed' },
+    completed: { bg: 'rgba(155,89,182,0.15)', color: '#9b59b6', label: 'Completed' },
+    cancelled: { bg: 'rgba(231,76,60,0.15)', color: '#e74c3c', label: 'Cancelled' },
+  };
+  const s = statusStyles[status?.toLowerCase()] || statusStyles.open;
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        padding: '2px 8px',
+        borderRadius: 4,
+        fontSize: 11,
+        fontWeight: 800,
+        background: s.bg,
+        color: s.color,
+        textTransform: 'uppercase',
+      }}
+    >
+      {s.label}
+    </span>
+  );
 }
 
 export default function AdminDashboard() {
@@ -136,6 +164,59 @@ export default function AdminDashboard() {
   const [auditLogsLoading, setAuditLogsLoading] = useState(false);
   const [auditLogsError, setAuditLogsError] = useState(null);
 
+  // Investments
+  const [investmentsList, setInvestmentsList] = useState([]);
+  const [investmentsLoading, setInvestmentsLoading] = useState(false);
+  const [investmentsError, setInvestmentsError] = useState(null);
+  const [verifyingInv, setVerifyingInv] = useState(null);
+
+  async function fetchInvestments() {
+    setInvestmentsLoading(true);
+    setInvestmentsError(null);
+    try {
+      const res = await getInvestments();
+      setInvestmentsList(Array.isArray(res) ? res : res?.investments || []);
+    } catch (e) {
+      setInvestmentsError(e?.response?.data?.error || e?.message || 'Failed to load investments');
+    } finally {
+      setInvestmentsLoading(false);
+    }
+  }
+
+  async function handleVerifyInvestment(inv) {
+    setMessage(null);
+    setError(null);
+    setVerifyingInv(inv._id || inv.investment_id || inv.id);
+    try {
+      const invId = inv._id || inv.investment_id || inv.id;
+      await verifyInvestment(invId);
+      setMessage('Investment verified and activated!');
+      await fetchInvestments();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to verify investment');
+    } finally {
+      setVerifyingInv(null);
+    }
+  }
+
+  async function handleUpdateProfit(inv) {
+    setMessage(null);
+    setError(null);
+    const profitAmount = prompt('Enter profit amount for this investment:');
+    if (!profitAmount || isNaN(Number(profitAmount))) {
+      setError('Valid profit amount required');
+      return;
+    }
+    try {
+      const invId = inv._id || inv.investment_id || inv.id;
+      await updateProfit(invId, Number(profitAmount));
+      setMessage('Profit updated successfully!');
+      await fetchInvestments();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to update profit');
+    }
+  }
+
   async function fetchActiveDeals() {
     setActiveDealsLoading(true);
     setActiveDealsError(null);
@@ -183,6 +264,7 @@ export default function AdminDashboard() {
     if (activeTab === 'investors' && !investorsLoading && investors.length === 0) fetchInvestors();
     if (activeTab === 'activity-log' && !auditLogsLoading && auditLogs.length === 0) fetchAuditLogs();
     if (activeTab === 'messages' && !inboxLoading && inbox.length === 0) fetchInbox();
+    if (activeTab === 'investments' && !investmentsLoading && investmentsList.length === 0) fetchInvestments();
   }, [activeTab]);
 
 
@@ -215,6 +297,32 @@ export default function AdminDashboard() {
       await fetchActiveDeals();
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || 'Failed to cancel deal');
+    }
+  }
+
+  async function onApproveDeal(deal) {
+    setMessage(null);
+    setError(null);
+    try {
+      const dealId = deal?._id ?? deal?.deal_id ?? deal?.id;
+      await approveDeal(dealId);
+      setMessage('Deal approved successfully');
+      await fetchActiveDeals();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to approve deal');
+    }
+  }
+
+  async function onCloseDeal(deal) {
+    setMessage(null);
+    setError(null);
+    try {
+      const dealId = deal?._id ?? deal?.deal_id ?? deal?.id;
+      await closeDeal(dealId);
+      setMessage('Deal closed successfully');
+      await fetchActiveDeals();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to close deal');
     }
   }
 
@@ -373,9 +481,10 @@ export default function AdminDashboard() {
             <div style={{ marginTop: 14 }}>
               <SidebarSectionTitle>Navigation</SidebarSectionTitle>
               {[
-                { key: 'active-deals', label: 'Profile Overview' },
+                { key: 'profile', label: 'Profile Overview' },
                 { key: 'activity-log', label: 'Activity Log' },
-                { key: 'active-deals', label: 'Active Deals' },
+                { key: 'active-deals', label: 'Deals' },
+                { key: 'investments', label: 'Investments' },
                 { key: 'create-deal', label: 'Create Deal' },
                 { key: 'messages', label: 'Messages' },
                 { key: 'investors', label: 'Investors' },
@@ -442,6 +551,8 @@ export default function AdminDashboard() {
                 <AdminDealCard
                   key={d.deal_id || d._id || d.id}
                   deal={d}
+                  onApprove={onApproveDeal}
+                  onClose={onCloseDeal}
                   onCancel={onCancelDeal}
                   onEdit={(deal) => setEditingDeal(deal)}
                 />
@@ -449,7 +560,7 @@ export default function AdminDashboard() {
             </div>
 
             {!activeDealsLoading && activeDeals.length === 0 ? (
-              <div style={{ color: 'var(--muted)' }}>No active deals.</div>
+              <div style={{ color: 'var(--muted)' }}>No deals found.</div>
             ) : null}
 
             {editingDeal ? (
@@ -612,6 +723,99 @@ export default function AdminDashboard() {
               View Active Deals
             </button>
           </div>
+        ) : null}
+
+        {activeTab === 'investments' ? (
+          <>
+            <h3 style={{ margin: '0 0 12px 0' }}>Investments</h3>
+            <p style={{ color: 'var(--muted)', marginBottom: 12, fontSize: 13 }}>
+              Verify pending investments and update profits.
+            </p>
+            {message ? <div className="alert ok">{message}</div> : null}
+            {error ? <div className="alert err">{error}</div> : null}
+            {investmentsError ? <div className="alert err">{investmentsError}</div> : null}
+            {investmentsLoading ? <div>Loading investments...</div> : null}
+
+            <div className="row">
+              {investmentsList.map((inv) => (
+                <div key={inv._id || inv.investment_id || inv.id} className="card" style={{ flex: 1, minWidth: 280 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <h4 style={{ marginTop: 0, marginBottom: 0 }}>
+                      {inv.investor?.username || inv.investor?.email || 'Investor'}
+                    </h4>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        background:
+                          inv.status === 'pending'
+                            ? 'rgba(241,196,15,0.15)'
+                            : inv.status === 'active'
+                            ? 'rgba(91,140,255,0.15)'
+                            : inv.status === 'completed'
+                            ? 'rgba(155,89,182,0.15)'
+                            : 'rgba(231,76,60,0.15)',
+                        color:
+                          inv.status === 'pending'
+                            ? '#f1c40f'
+                            : inv.status === 'active'
+                            ? '#5b8cff'
+                            : inv.status === 'completed'
+                            ? '#9b59b6'
+                            : '#e74c3c',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {inv.status || 'pending'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, marginBottom: 4 }}>
+                    Deal: {inv.deal?.title || inv.deal_id || '-'}
+                  </div>
+                  <div style={{ fontWeight: 800, marginBottom: 4 }}>
+                    {Number(inv.amount_invested || inv.amount || 0).toLocaleString()} KES
+                  </div>
+                  {inv.transaction_id && (
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
+                      Ref: {inv.transaction_id}
+                    </div>
+                  )}
+                  {inv.profit != null && (
+                    <div style={{ fontSize: 13, color: '#2ecc71', marginBottom: 4 }}>
+                      Profit: {Number(inv.profit).toLocaleString()} KES
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    {inv.status === 'pending' && (
+                      <button
+                        className="btn primary"
+                        onClick={() => handleVerifyInvestment(inv)}
+                        disabled={verifyingInv === (inv._id || inv.investment_id || inv.id)}
+                        style={{ flex: 1 }}
+                      >
+                        {verifyingInv === (inv._id || inv.investment_id || inv.id) ? 'Verifying...' : 'Verify'}
+                      </button>
+                    )}
+                    <button
+                      className="btn"
+                      onClick={() => handleUpdateProfit(inv)}
+                      disabled={inv.status !== 'active'}
+                      style={{ flex: 1 }}
+                    >
+                      Update Profit
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {!investmentsLoading && investmentsList.length === 0 ? (
+              <div style={{ color: 'var(--muted)' }}>No investments found.</div>
+            ) : null}
+          </>
         ) : null}
 
         {activeTab === 'messages' ? (

@@ -11,6 +11,7 @@ function toQuery(filters = {}) {
   return q;
 }
 
+// Investor/Admin: fetch deals
 export async function getDeals(filters = {}) {
   const { data } = await api.get('/api/deals', { params: toQuery(filters) });
   return data;
@@ -32,7 +33,6 @@ export async function getActiveDeals() {
   return data;
 }
 
-
 export async function updateDeal(dealId, payload) {
   const { data } = await api.put(`/api/deals/${dealId}`, payload);
   return data;
@@ -43,10 +43,22 @@ export async function cancelDeal(dealId, { hardDelete = false } = {}) {
   return data;
 }
 
-export async function verifyPayment(investmentIdOrProofId) {
-  // Backend may differ; keep flexible by sending id
-  const { data } = await api.post(`/api/payments/verify`, { id: investmentIdOrProofId });
+// ✅ New lifecycle endpoints
+
+// Admin: approve a deal
+export async function approveDeal(dealId) {
+  const { data } = await api.post(`/api/deals/${dealId}/approve`);
   return data;
 }
 
+// Admin: close a deal
+export async function closeDeal(dealId) {
+  const { data } = await api.post(`/api/deals/${dealId}/close`);
+  return data;
+}
 
+// Payment verification (legacy)
+export async function verifyPayment(investmentIdOrProofId) {
+  const { data } = await api.post(`/api/payments/verify`, { id: investmentIdOrProofId });
+  return data;
+}

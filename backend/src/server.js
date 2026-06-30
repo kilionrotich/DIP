@@ -18,8 +18,6 @@ import investorRoutes from './routes/investorRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 
-
-
 // Initialize app
 const app = express();
 
@@ -28,7 +26,6 @@ app.use(cors());
 app.use(express.json());
 
 // CORS setup
-// Allow configured origins; fallback to permissive CORS to avoid "Network error" on phones/browsers.
 const allowedOrigins = (process.env.CORS_ORIGINS || "")
   .split(",")
   .map(s => s.trim())
@@ -43,15 +40,13 @@ app.use(
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/deals', dealRoutes);
-app.use('/api/investments', investmentRoutes);
-app.use('/api/profits', profitRoutes);
+app.use('/api/deals', dealRoutes);          // includes create, approve, cancel, close, invest
+app.use('/api/investments', investmentRoutes); // includes commit, verify, profit update, legacy create
+app.use('/api/profits', profitRoutes);      // includes get profits, update profit by investmentId
 app.use('/api/payments', paymentRoutes);
 app.use('/api/investors', investorRoutes);
 app.use('/api/audit-logs', auditRoutes);
-app.use('/api/messages', messageRoutes);
-
-
+app.use('/api/messages', messageRoutes);    // includes send, get, verify, delete
 
 // Default route
 app.get('/', (req, res) => {
@@ -65,7 +60,7 @@ app.get('/', (req, res) => {
     console.log('Yaay! Database connected');
 
     await sequelize.sync();
-    console.log('Models synced succesfuly');
+    console.log('Models synced successfully');
 
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {

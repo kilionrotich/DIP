@@ -1,11 +1,17 @@
 // backend/src/routes/investmentRoutes.js
 import express from 'express';
-import { createInvestment, getInvestments } from '../controllers/investmentController.js';
+import {
+  createInvestment,
+  getInvestments,
+  commitInvestment,
+  verifyInvestment,
+  updateProfit
+} from '../controllers/investmentController.js';
 import { verifyToken, isAdminOrSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Admin records an investment (protected)
+// Admin records an investment (legacy direct creation)
 router.post('/', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
   try {
     await createInvestment(req, res);
@@ -14,7 +20,34 @@ router.post('/', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
   }
 });
 
-// Investor fetches their investments (protected)
+// Investor commits to a deal (protected)
+router.post('/commit', verifyToken, async (req, res) => {
+  try {
+    await commitInvestment(req, res);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin verifies an investment (protected)
+router.put('/:investmentId/verify', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
+  try {
+    await verifyInvestment(req, res);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin updates profit for an investment (protected)
+router.put('/:investmentId/profit', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
+  try {
+    await updateProfit(req, res);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Investor/Admin fetch all investments (protected)
 router.get('/', verifyToken, getInvestments);
 
 export default router;

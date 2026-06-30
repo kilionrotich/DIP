@@ -14,11 +14,32 @@ export default function DealCrad({ deal }) {
 
   const title = deal?.title || deal?.name || 'Untitled deal';
   const description = deal?.description || '';
+  const status = deal?.status?.toLowerCase() || 'approved';
 
+  // Show status badge for approved deals (investor view)
+  const showBadge = status === 'approved';
 
   return (
     <div className="card" style={{ flex: '0 0 320px', minWidth: 280 }}>
-      <h3 style={{ marginTop: 0, marginBottom: 8 }}>{title}</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <h3 style={{ marginTop: 0, marginBottom: 0 }}>{title}</h3>
+        {showBadge && (
+          <span
+            style={{
+              display: 'inline-block',
+              padding: '2px 8px',
+              borderRadius: 4,
+              fontSize: 10,
+              fontWeight: 800,
+              background: 'rgba(46,204,113,0.15)',
+              color: '#2ecc71',
+              textTransform: 'uppercase',
+            }}
+          >
+            Approved
+          </span>
+        )}
+      </div>
       <div style={{ color: 'var(--muted)', minHeight: 44 }}>
         {description ? (description.length > 90 ? description.slice(0, 90) + '…' : description) : 'No description.'}
       </div>
@@ -33,6 +54,13 @@ export default function DealCrad({ deal }) {
         </div>
       </div>
 
+      {deal?.expected_return ? (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6 }}>
+          <div style={{ color: 'var(--muted)', fontSize: 13 }}>Expected Return</div>
+          <div style={{ fontWeight: 800, color: '#2ecc71' }}>{deal.expected_return}%</div>
+        </div>
+      ) : null}
+
 
       <div style={{ height: 14 }} />
 
@@ -42,7 +70,7 @@ export default function DealCrad({ deal }) {
         disabled={!id}
         style={{ width: '100%' }}
       >
-        View Details
+        Invest Now
       </button>
     </div>
   );

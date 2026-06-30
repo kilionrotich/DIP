@@ -16,7 +16,8 @@ import {
 
 export default function InvestorDashboard() {
   const { user, logout } = useAuth();
-  const { deals, loading: dealsLoading, error: dealsError } = useDeals({ status: 'open' });
+  // Investors can only commit to approved deals
+  const { deals, loading: dealsLoading, error: dealsError } = useDeals({ status: 'approved' });
 
 
 
@@ -105,8 +106,11 @@ export default function InvestorDashboard() {
 
       <div style={{ height: 18 }} />
 
-      {/* Deals (Open to invest) */}
-      <h3 style={{ margin: '0 0 12px 0' }}>Available Deals</h3>
+      {/* Deals (Available to invest - only approved) */}
+      <h3 style={{ margin: '0 0 12px 0' }}>Available Opportunities</h3>
+      <p style={{ color: 'var(--muted)', marginBottom: 12, fontSize: 13 }}>
+        Only approved deals are available for investment. Contact support if you have questions.
+      </p>
 
 
 

@@ -8,8 +8,9 @@ const router = express.Router();
 // Investor fetches their profit summary (protected)
 router.get('/', verifyToken, getProfits);
 
-// Admin updates profit for an investment (protected)
-router.put('/', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
+// Admin updates profit for a specific investment (protected)
+// Use investmentId in the URL for clarity
+router.put('/:investmentId', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
   try {
     await updateProfit(req, res);
   } catch (err) {

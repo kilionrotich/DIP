@@ -1,6 +1,14 @@
 // backend/src/routes/dealRoutes.js
 import express from 'express';
-import { createDeal, getDeals, getActiveDeals, updateDeal, cancelDeal } from '../controllers/dealController.js';
+import {
+  createDeal,
+  getDeals,
+  getActiveDeals,
+  updateDeal,
+  cancelDeal,
+  approveDeal,
+  closeDeal
+} from '../controllers/dealController.js';
 import { verifyToken, isAdminOrSuperAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -14,21 +22,14 @@ router.post('/', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
   }
 });
 
-/**
- * Investor commits to a deal (creates Investment + optional PaymentProof)
- * Note: requires verifyToken; we don’t gate by role here so investor can commit.
- */
+// Investor commits to a deal (creates Investment + optional PaymentProof)
 router.post('/:dealId/invest', verifyToken, async (req, res) => {
   const { dealId } = req.params;
-
   try {
-    // Delegate to this route but map frontend payload variants consistently.
+    // existing commit logic preserved
     const {
-      amount, // ignored; we enforce fixed_amount
       investorId,
       investor_id: investor_id_from_body,
-      type, // unused
-      amount_invested, // unused (we enforce fixed_amount)
       paymentProofUrl,
       proofUrl,
       transaction_id: transaction_id_from_body,
@@ -52,14 +53,12 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
     const deal = await Deal.findByPk(dealId);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-    // Investor can only commit once Admin approves the deal
-    if (deal.status !== 'approved' && deal.status !== 'open') {
+    if (deal.status !== 'approved') {
       return res.status(400).json({ error: `Deal is not approved for investment (status: ${deal.status})` });
     }
 
-    // Fixed amount enforcement: ignore client-provided amount, always use deal.fixed_amount
     const fixed_amount = deal.fixed_amount;
-    if (fixed_amount === null || fixed_amount === undefined || fixed_amount === '') {
+    if (!fixed_amount) {
       return res.status(400).json({ error: 'Deal is missing fixed_amount' });
     }
 
@@ -67,7 +66,6 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
     const PaymentProof = (await import('../models/PaymentProof.js')).default;
     const { Op } = await import('sequelize');
 
-    // Prevent duplicate investment submissions (treat any non-refunded investment as duplicate)
     const existing = await Investment.findOne({
       where: {
         investor_id,
@@ -75,7 +73,6 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
         status: { [Op.ne]: 'refunded' },
       },
     });
-
     if (existing) {
       return res.status(400).json({ error: 'Investment already submitted for this deal' });
     }
@@ -88,56 +85,33 @@ router.post('/:dealId/invest', verifyToken, async (req, res) => {
       status: status || 'pending',
     });
 
-// Payment proof: supports uploaded file and/or transaction id
-    // Accept payload variants:
-    // - transaction_id (string)
-    // - file_url (string)
-    // - paymentProofUrl / proofUrl (legacy)
-    // NOTE: This endpoint expects multipart upload support to be wired in server.js.
-    // If a multipart upload is used, multer will provide req.file / req.files.
     const resolvedTransactionId = transaction_id_from_body ?? req.body?.transaction_id;
-
-    // file_url might come from legacy inputs; if we add multer later, we map it here.
     let resolvedFileUrl = paymentProofUrl ?? proofUrl ?? file_url;
-
-    // Prefer uploaded file path if present
-    if (!resolvedFileUrl && req.file?.path) {
-      resolvedFileUrl = req.file.path;
-    }
-    if (!resolvedFileUrl && req.files?.length) {
-      resolvedFileUrl = req.files[0]?.path;
-    }
+    if (!resolvedFileUrl && req.file?.path) resolvedFileUrl = req.file.path;
+    if (!resolvedFileUrl && req.files?.length) resolvedFileUrl = req.files[0]?.path;
 
     if (!resolvedFileUrl && !resolvedTransactionId) {
-      return res.status(400).json({
-        error: 'Payment proof is required (upload a slip or provide a transaction id)',
-      });
+      return res.status(400).json({ error: 'Payment proof is required' });
     }
 
     await PaymentProof.create({
       transaction_id: resolvedTransactionId ?? null,
       file_url: resolvedFileUrl ?? null,
       status: 'pending',
-      // verified_by will be set on verification; leave null
       investment_id: investment.investment_id ?? investment.id,
     });
 
     return res.status(201).json(investment);
   } catch (err) {
-    // Don’t mis-label server/DB errors as client errors.
-    console.error('POST /api/deals/:dealId/invest failed:', {
-      dealId,
-      message: err?.message,
-      name: err?.name,
-    });
+    console.error('POST /api/deals/:dealId/invest failed:', { dealId, message: err?.message });
     return res.status(500).json({ error: err?.message || 'Internal server error' });
   }
 });
 
-// Investors fetch all deals (protected)
+// Investors fetch all deals
 router.get('/', verifyToken, getDeals);
 
-// Fetch single deal (used by DealDetails)
+// Fetch single deal
 router.get('/:dealId', verifyToken, async (req, res) => {
   try {
     const { dealId } = req.params;
@@ -156,42 +130,13 @@ router.get('/active', verifyToken, isAdminOrSuperAdmin, getActiveDeals);
 // Admin: edit deal
 router.put('/:dealId', verifyToken, isAdminOrSuperAdmin, updateDeal);
 
-// Admin: cancel/delete deal
+// Admin: cancel deal
 router.post('/:dealId/cancel', verifyToken, isAdminOrSuperAdmin, cancelDeal);
 
-// Admin: close completed deal
-router.post('/:dealId/close', verifyToken, isAdminOrSuperAdmin, async (req, res) => {
-  try {
-    const { dealId } = req.params;
+// Admin: approve deal
+router.post('/:dealId/approve', verifyToken, isAdminOrSuperAdmin, approveDeal);
 
-    const Deal = (await import('../models/Deal.js')).default;
-    const Investment = (await import('../models/Investment.js')).default;
-
-    const deal = await Deal.findByPk(dealId);
-    if (!deal) return res.status(404).json({ error: 'Deal not found' });
-
-    if (deal.status === 'cancelled') {
-      return res.status(400).json({ error: 'Cancelled deals cannot be closed' });
-    }
-
-    // close deal
-    await deal.update({ status: 'completed' });
-
-    // mark investments completed (best-effort)
-    if (dealId) {
-      await Investment.update(
-        { status: 'completed' },
-        { where: { deal_id: dealId } }
-      );
-    }
-
-    return res.json({ message: 'Deal closed (completed)', deal });
-  } catch (e) {
-    return res.status(400).json({ error: e.message });
-  }
-});
+// Admin: close deal
+router.post('/:dealId/close', verifyToken, isAdminOrSuperAdmin, closeDeal);
 
 export default router;
-
-
-

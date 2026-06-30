@@ -5,19 +5,17 @@
    - Admin: create -> approved -> closed/completed/cancelled
    - Investor: available approved deals -> commit -> pending proof -> active -> completed history
 2. Ensure backend endpoints exist and enforce role/status rules:
-   - Approve deal (admin) and move to "approved" column
-   - Investor commit should only allow on approved deals; lock cancelled/completed deals
-   - Admin verify/reject payment proof should update investment status (active/pending)
-   - Admin close deal should set deal completed and move investors to history
-   - Cancel should set deal cancelled (and lock committing)
-3. Implement dashboard stats endpoints and wire frontend:
-   - Admin dashboard: Total Invested, Profits, Investments updating automatically
-   - Investor dashboard: Total Invested, Current Value, ROI, Profits updating automatically
-4. Implement/finish message notifications in both dashboards:
-   - Admin sends messages on approval, rejection, closure
-   - Investor receives messages and sees them in Messages/Inbox
-5. Update frontend UI to reflect lifecycle columns and history:
-   - Admin: Active Deals, Approved Deals, History of Completed Deals, Cancelled visible but locked
-   - Investor: active/pending investments and history; status pills; lock UI when cancelled/completed
-6. Run backend/frontend tests or at least start dev servers and sanity-check flows.
+   - Add `sector` to deals
+   - Approve deal (admin) and move to `approved`
+   - Investor commit only allowed on `approved` deals; lock cancelled/completed deals
+   - Admin verify/reject payment proof should update investment status (`active`/`pending`)
+   - Admin close deal should set deal `completed` and move investments to history/completed
+   - Cancel sets deal `cancelled` and locks related investments from committing
+3. Implement audit logs for: deal creation, approval, close, cancellation, proof verification/rejection, profit updates.
+4. Notifications/messages tied to deals on each lifecycle event.
+5. Implement/finish dashboards endpoints and wire frontend:
+   - Admin dashboard totals and deal breakdown
+   - Investor dashboard commitments/history + profit/ROI display
+6. Update frontend UI components/pages to show columns (active/pending/approved/completed/cancelled) and lock actions for cancelled/completed.
+7. Sanity-check by running backend + frontend and exercising: create deal -> approve -> commit -> upload proof -> verify -> profit -> close -> history.
 

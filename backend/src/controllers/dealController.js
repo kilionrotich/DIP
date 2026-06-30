@@ -16,7 +16,7 @@ export async function createDeal(req, res) {
       status,
     } = req.body;
 
-    // Normalize numeric fields coming from the frontend (empty strings cause Sequelize "invalid syntax" errors)
+    // Normalize numeric fields
     amount_required = amount_required === '' || amount_required == null ? null : Number(amount_required);
     fixed_amount = fixed_amount === '' || fixed_amount == null ? null : Number(fixed_amount);
     expected_return = expected_return === '' || expected_return == null ? null : Number(expected_return);
@@ -25,8 +25,7 @@ export async function createDeal(req, res) {
     if (!Number.isFinite(fixed_amount)) fixed_amount = null;
     if (!Number.isFinite(expected_return)) expected_return = null;
 
-    // If the admin form provides only fixed_amount (or amount_required is empty), keep DB constraints happy.
-    // Deal model requires both amount_required and fixed_amount as NOT NULL, so derive one from the other.
+    // Derive missing values
     if (amount_required == null && fixed_amount != null) amount_required = fixed_amount;
     if (fixed_amount == null && amount_required != null) fixed_amount = amount_required;
 
@@ -42,10 +41,8 @@ export async function createDeal(req, res) {
       expected_return,
       start_date,
       end_date,
-      // Admin can set status (e.g. 'approved'). Investor commits will be blocked unless approved.
-      status: status || 'open',
+      status: status || 'open', // default lifecycle start
     });
-
 
     res.status(201).json(deal);
   } catch (err) {
@@ -56,27 +53,11 @@ export async function createDeal(req, res) {
 // Get all deals (Investors/Admin)
 export async function getDeals(req, res) {
   try {
-    const {
-      status,
-      sector,
-      roi_min,
-      roi_max,
-      deadline,
-      risk,
-    } = req.query;
-
-    // NOTE: current Deal model only includes: title, description, amount_required,
-    // expected_return, start_date, end_date, status.
-    // We map the requested filters onto available fields as follows:
-    // - sector -> not available yet (ignored)
-    // - roi_min/roi_max -> interpreted using expected_return / amount_required - 1 (in %)
-    // - deadline -> interpreted as end_date <= deadline (if provided)
-    // - risk -> not available yet (ignored)
+    const { status, sector, roi_min, roi_max, deadline, risk } = req.query;
 
     const where = {};
     if (status) where.status = status;
 
-    // Deadline filter (end_date)
     if (deadline) {
       const dt = new Date(deadline);
       if (!Number.isNaN(dt.getTime())) {
@@ -85,7 +66,6 @@ export async function getDeals(req, res) {
       }
     }
 
-    // Fetch first, then ROI filter in JS (to avoid adding DB columns right now)
     const deals = await Deal.findAll({
       where: Object.keys(where).length ? where : undefined,
       order: [['deal_id', 'DESC']],
@@ -95,34 +75,23 @@ export async function getDeals(req, res) {
     const roiMax = roi_max !== undefined ? Number(roi_max) : null;
 
     const filtered = deals.filter((d) => {
-      // ROI % = (expected_return - required) / required * 100
-      // required can be amount_required (legacy) or fixed_amount (new)
       const expected = Number(d.expected_return);
       const required = Number(d.amount_required ?? d.fixed_amount);
 
-      // If ROI filters are not requested, keep the deal even if ROI inputs are missing.
       if (roiMin === null && roiMax === null) return true;
-
-      // If ROI filters are requested but we can't compute ROI for this deal, drop it.
-      if (!Number.isFinite(expected) || !Number.isFinite(required) || required <= 0) {
-        return false;
-      }
+      if (!Number.isFinite(expected) || !Number.isFinite(required) || required <= 0) return false;
 
       const roiPct = ((expected - required) / required) * 100;
-
       if (roiMin !== null && roiPct < roiMin) return false;
       if (roiMax !== null && roiPct > roiMax) return false;
       return true;
     });
-
 
     res.json(filtered);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
-
-
 
 // Get active/open deals
 export async function getActiveDeals(req, res) {
@@ -137,25 +106,15 @@ export async function getActiveDeals(req, res) {
   }
 }
 
-// Update deal (admin)
+// Update deal (Admin)
 export async function updateDeal(req, res) {
   try {
     const { dealId } = req.params;
-
     const deal = await Deal.findByPk(dealId);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-    const {
-      title,
-      description,
-      amount_required,
-      expected_return,
-      fixed_amount,
-      start_date,
-      end_date,
-    } = req.body;
+    const { title, description, amount_required, expected_return, fixed_amount, start_date, end_date } = req.body;
 
-    // Only allow edits for open deals
     if (deal.status !== 'open') {
       return res.status(400).json({ error: 'Only open deals can be edited' });
     }
@@ -176,27 +135,22 @@ export async function updateDeal(req, res) {
   }
 }
 
-// Cancel/delete deal (admin/super-admin)
+// Cancel/delete deal (Admin)
 export async function cancelDeal(req, res) {
   try {
     const { dealId } = req.params;
     const { hardDelete = false } = req.body || {};
-
-
-
     const deal = await Deal.findByPk(dealId);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-  // Soft close: for safety + mirrors “cancel” semantics
     if (!hardDelete) {
-      if (deal.status !== 'open') {
-        return res.status(400).json({ error: 'Deal is not active' });
+      if (deal.status === 'completed') {
+        return res.status(400).json({ error: 'Completed deals cannot be cancelled' });
       }
       await deal.update({ status: 'cancelled' });
-      return res.json({ message: 'Deal cancelled (cancelled)', deal });
+      return res.json({ message: 'Deal cancelled', deal });
     }
 
-    // Hard delete
     await deal.destroy();
     return res.json({ message: 'Deal deleted', dealId });
   } catch (err) {
@@ -204,3 +158,38 @@ export async function cancelDeal(req, res) {
   }
 }
 
+// Approve deal (Admin)
+export async function approveDeal(req, res) {
+  try {
+    const { dealId } = req.params;
+    const deal = await Deal.findByPk(dealId);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    if (deal.status !== 'open') {
+      return res.status(400).json({ error: 'Only open deals can be approved' });
+    }
+
+    await deal.update({ status: 'approved' });
+    return res.json({ message: 'Deal approved', deal });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+}
+
+// Close deal (Admin)
+export async function closeDeal(req, res) {
+  try {
+    const { dealId } = req.params;
+    const deal = await Deal.findByPk(dealId);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    if (deal.status !== 'approved' && deal.status !== 'active') {
+      return res.status(400).json({ error: 'Only approved/active deals can be closed' });
+    }
+
+    await deal.update({ status: 'completed' });
+    return res.json({ message: 'Deal closed', deal });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+}
