@@ -56,7 +56,11 @@ export async function getDeals(req, res) {
     const { status, sector, roi_min, roi_max, deadline, risk } = req.query;
 
     const where = {};
-    if (status) where.status = status;
+    if (status) {
+      // Support comma-separated status values (e.g., "completed,cancelled")
+      const statuses = status.split(',').map(s => s.trim());
+      where.status = statuses.length > 1 ? statuses : status;
+    }
 
     if (deadline) {
       const dt = new Date(deadline);

@@ -172,17 +172,19 @@ router.post('/:dealId/close', verifyToken, isAdminOrSuperAdmin, closeDeal);
 router.get('/:dealId/investments', verifyToken, async (req, res) => {
   try {
     const { dealId } = req.params;
+    const dealIdNum = parseInt(dealId, 10);
     const Investment = (await import('../models/Investment.js')).default;
     const User = (await import('../models/User.js')).default;
 
     const investments = await Investment.findAll({
-      where: { deal_id: dealId },
+      where: { deal_id: dealIdNum },
       include: [{ model: User, as: 'investor', attributes: ['user_id', 'username', 'email'] }],
       order: [['investment_id', 'DESC']]
     });
 
     res.json({ investments });
   } catch (err) {
+    console.error('Error fetching investments:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
