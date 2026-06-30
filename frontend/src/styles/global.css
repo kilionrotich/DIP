@@ -76,6 +76,10 @@ a {
   background: rgba(255, 77, 77, 0.18);
 }
 
+input, textarea, select, .form-input {
+  color: #000 !important;
+}
+
 .input {
   width: 100%;
   padding: 10px 12px;
@@ -84,6 +88,10 @@ a {
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   outline: none;
+}
+
+label, .form-label {
+  color: #222 !important;
 }
 
 .label {
@@ -169,3 +177,6 @@ a {
 .dashboard-stat.danger p {
   color: var(--danger);
 }
+
+
+

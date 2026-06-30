@@ -128,7 +128,7 @@ export async function getInvestments(req, res) {
 
     const investments = await Investment.findAll({
       where: Object.keys(where).length ? where : undefined,
-      include: [{ model: Deal, as: 'deal' }],
+      include: [Deal],
       order: [['investment_id', 'DESC']],
     });
 
@@ -169,3 +169,4 @@ export async function getAvailableDeals(req, res) {
     res.status(500).json({ error: err.message });
   }
 }
+
