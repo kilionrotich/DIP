@@ -4,8 +4,6 @@ import {
   createDeal,
   getDeals,
   getActiveDeals,
-  getDealsByStatus,
-  getDealStats,
   updateDeal,
   cancelDeal,
   approveDeal,
