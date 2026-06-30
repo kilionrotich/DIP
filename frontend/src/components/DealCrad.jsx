@@ -14,10 +14,10 @@ export default function DealCrad({ deal }) {
 
   const title = deal?.title || deal?.name || 'Untitled deal';
   const description = deal?.description || '';
-  const status = deal?.status?.toLowerCase() || 'approved';
+  const status = deal?.status?.toLowerCase() || 'open';
 
-  // Show status badge for approved deals (investor view)
-  const showBadge = status === 'approved';
+  // Show status badge for open deals (investor view)
+  const showBadge = status === 'open';
 
   return (
     <div className="card" style={{ flex: '0 0 320px', minWidth: 280 }}>
@@ -36,7 +36,7 @@ export default function DealCrad({ deal }) {
               textTransform: 'uppercase',
             }}
           >
-            Approved
+            Open
           </span>
         )}
       </div>
@@ -70,7 +70,7 @@ export default function DealCrad({ deal }) {
         disabled={!id}
         style={{ width: '100%' }}
       >
-        Invest Now
+        Accept & Invest
       </button>
     </div>
   );

@@ -106,6 +106,12 @@ export default function AdminDashboard() {
   const [investors, setInvestors] = useState([]);
   const [investorsLoading, setInvestorsLoading] = useState(false);
   const [investorsError, setInvestorsError] = useState(null);
+
+  // Investments state (for verifying pending investments)
+  const [investments, setInvestments] = useState([]);
+  const [investmentsLoading, setInvestmentsLoading] = useState(false);
+  const [investmentsError, setInvestmentsError] = useState(null);
+  const [verifyingInvest, setVerifyingInvest] = useState(null);
   const [investorQuery, setInvestorQuery] = useState('');
 
   // Messaging
@@ -176,6 +182,35 @@ export default function AdminDashboard() {
     }
   }
 
+  async function fetchInvestments() {
+    setInvestmentsLoading(true);
+    setInvestmentsError(null);
+    try {
+      const res = await getInvestments();
+      setInvestments(Array.isArray(res?.investments) ? res.investments : res || []);
+    } catch (e) {
+      setInvestmentsError(e?.response?.data?.error || e?.message || 'Failed to load investments');
+    } finally {
+      setInvestmentsLoading(false);
+    }
+  }
+
+  async function handleVerifyInvestment(inv) {
+    setVerifyingInvest(inv._id || inv.investment_id || inv.id);
+    setMessage(null);
+    setError(null);
+    try {
+      const invId = inv._id || inv.investment_id || inv.id;
+      await verifyInvestment(invId);
+      setMessage('Investment verified and activated!');
+      await fetchInvestments();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.message || 'Failed to verify investment');
+    } finally {
+      setVerifyingInvest(null);
+    }
+  }
+
   useEffect(() => {
     fetchActiveDeals();
   }, []);
@@ -184,6 +219,7 @@ export default function AdminDashboard() {
     if (activeTab === 'investors' && !investorsLoading && investors.length === 0) fetchInvestors();
     if (activeTab === 'activity-log' && !auditLogsLoading && auditLogs.length === 0) fetchAuditLogs();
     if (activeTab === 'messages' && !inboxLoading && inbox.length === 0) fetchInbox();
+    if (activeTab === 'investments' && !investmentsLoading && investments.length === 0) fetchInvestments();
   }, [activeTab]);
 
 
@@ -380,6 +416,7 @@ export default function AdminDashboard() {
                 { key: 'create-deal', label: 'Create Deal' },
                 { key: 'messages', label: 'Messages' },
                 { key: 'investors', label: 'Investors' },
+                { key: 'investments', label: 'Investments' },
               ].map((item, idx) => (
                 <button
                   key={`${item.key}-${idx}`}
@@ -598,6 +635,81 @@ export default function AdminDashboard() {
               <div style={{ color: 'var(--muted)' }}>No investors found.</div>
             ) : null}
           </>
+        ) : null}
+
+        {activeTab === 'investments' ? (
+          <div>
+            <h3 style={{ margin: '0 0 12px 0' }}>Investments</h3>
+            <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 16 }}>
+              Verify pending investments to activate them. Each investment must be approved individually.
+            </p>
+
+            {message && <div className="alert ok">{message}</div>}
+            {error && <div className="alert err">{error}</div>}
+
+            {investmentsLoading ? <div style={{ color: 'var(--muted)' }}>Loading investments...</div> : null}
+            {investmentsError ? <div className="alert err">{investmentsError}</div> : null}
+
+            {!investmentsLoading && investments.length === 0 ? (
+              <div className="card">
+                <div style={{ color: 'var(--muted)' }}>No investments found.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {investments.map((inv) => {
+                  const invId = inv._id || inv.investment_id || inv.id;
+                  const isPending = inv.status === 'pending';
+                  return (
+                    <div
+                      key={invId}
+                      className="card"
+                      style={{ padding: 14 }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 800 }}>
+                          {inv.investor?.username || inv.investor?.email || 'Investor'}
+                        </div>
+                        <span
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 800,
+                            background: isPending ? 'rgba(241,196,15,0.15)' : 'rgba(46,204,113,0.15)',
+                            color: isPending ? '#f1c40f' : '#2ecc71',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {inv.status || 'pending'}
+                        </span>
+                      </div>
+                      <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 4 }}>
+                        Deal: {inv.deal?.title || inv.deal_id || 'N/A'}
+                      </div>
+                      <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 4 }}>
+                        Amount: {Number(inv.amount_invested || inv.amount || 0).toLocaleString()} KES
+                      </div>
+                      {inv.transaction_id && (
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+                          Ref: {inv.transaction_id}
+                        </div>
+                      )}
+                      {isPending && (
+                        <button
+                          className="btn primary"
+                          onClick={() => handleVerifyInvestment(inv)}
+                          disabled={verifyingInvest === invId}
+                          style={{ width: '100%' }}
+                        >
+                          {verifyingInvest === invId ? 'Verifying...' : 'Verify & Activate'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         ) : null}
 
         {activeTab === 'reports' ? (

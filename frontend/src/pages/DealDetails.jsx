@@ -103,7 +103,7 @@ export default function DealDetails() {
     return deal?.title || deal?.name || `Deal ${deal?._id || deal?.id || ''}`;
   }, [deal]);
 
-  const isApproved = deal?.status?.toLowerCase() === 'approved';
+  const isOpen = deal?.status?.toLowerCase() === 'open';
 
   async function onCommit(payload) {
     setCommitStatus(null);
@@ -179,7 +179,7 @@ export default function DealDetails() {
             <div style={{ height: 18 }} />
 
             {/* Investment Form - Only show for investors on approved deals */}
-            {!isAdmin && isApproved && (
+            {!isAdmin && isOpen && (
               <>
                 <h3 style={{ marginTop: 0 }}>Commit Investment</h3>
                 {commitStatus?.type === 'ok' && <div className="alert ok">{commitStatus.text}</div>}
@@ -197,14 +197,14 @@ export default function DealDetails() {
                     user={user}
                     fixedAmount={deal?.fixed_amount}
                     onSubmit={onCommit}
-                    disabled={!isApproved}
+                    disabled={!isOpen}
                   />
                 )}
               </>
             )}
 
             {/* Admin sees edit message if not approved */}
-            {!isAdmin && !isApproved && (
+            {!isAdmin && !isOpen && (
               <div style={{ padding: 16, background: 'rgba(241,196,15,0.1)', borderRadius: 8 }}>
                 <p style={{ color: '#f1c40f', fontWeight: 800 }}>Deal Not Available</p>
                 <p style={{ color: 'var(--muted)', fontSize: 13 }}>

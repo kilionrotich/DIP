@@ -16,8 +16,8 @@ import {
 
 export default function InvestorDashboard() {
   const { user, logout } = useAuth();
-  // Investors can only commit to approved deals
-  const { deals, loading: dealsLoading, error: dealsError } = useDeals({ status: 'approved' });
+  // Investors can view open deals and accept to invest
+  const { deals, loading: dealsLoading, error: dealsError } = useDeals({ status: 'open' });
 
 
 
