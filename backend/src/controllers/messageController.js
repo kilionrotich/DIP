@@ -4,7 +4,7 @@ import Admin from '../models/Admin.js';
 
 const ADMIN_EMAIL = 'anthonypyatich@gmail.com';
 
-// Helper: find admin by hardcoded email
+// Helper: find admin record by hardcoded email
 async function getAdminByEmail() {
   return await Admin.findOne({
     include: [
@@ -25,14 +25,14 @@ export async function sendMessage(req, res) {
     const sender_id = req.user?.id ?? req.user?.user_id;
     if (!sender_id) return res.status(403).json({ error: 'Unauthorized' });
 
-    // Accept either field name, resolve to hardcoded admin if missing
+    // Accept either field name; resolve to hardcoded admin if missing
     const targetReceiverId = recipient_id || receiver_id;
 
     if (!targetReceiverId) {
       const admin = await getAdminByEmail();
       if (!admin) {
         return res.status(404).json({
-          error: 'Admin contact not found. Please contact support@dip.com.',
+          error: 'Admin not found with email ' + ADMIN_EMAIL,
         });
       }
       receiver_id = admin.user_id;
@@ -87,14 +87,36 @@ export async function sendMessage(req, res) {
   }
 }
 
-// Get inbox messages for the authenticated user.
+// Get inbox messages.
+// For the admin user (anthonypyatich@gmail.com), fetches by recipient_id.
+// For other users (investors), fetches by receiver_id.
 export async function getMessages(req, res) {
   try {
     const currentUserId = req.user?.id ?? req.user?.user_id;
     if (!currentUserId) return res.status(403).json({ error: 'Unauthorized' });
 
+    // Find the admin record — if current user is the admin, query by recipient_id
+    const admin = await Admin.findOne({
+      where: { user_id: currentUserId },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          where: { email: ADMIN_EMAIL, role: 'admin' },
+        },
+      ],
+    });
+
+    let where;
+    if (admin) {
+      // Admin user: fetch messages where recipient_id = this admin's admin_id
+      where = { recipient_id: admin.admin_id };
+    } else {
+      // Investor or other user: fetch where receiver_id = their user_id
+      where = { receiver_id: currentUserId };
+    }
+
     const { sender_id } = req.query;
-    const where = { receiver_id: currentUserId };
     if (sender_id) where.sender_id = sender_id;
 
     const messages = await Message.findAll({
@@ -115,7 +137,7 @@ export async function getMessages(req, res) {
   }
 }
 
-// Admin verifies a message (marks as verified or important).
+// Admin verifies a message.
 export async function verifyMessage(req, res) {
   try {
     const messageId = req.params.messageId || req.body.message_id;

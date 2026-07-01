@@ -15,19 +15,17 @@ export const registerUser = async (req, res) => {
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-      return res.status(400).json({ message: 'All fields are required' });
+      return res.status(400).json({ error: 'All fields are required' });
     }
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ error: 'User already exists with this email' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const { role } = req.body;
-    // Only admin is allowed via public registration; anything else defaults to investor.
-    // super_admin can only be created by direct DB/seed (not via this endpoint).
     const normalizedRole = role === 'admin' ? 'admin' : 'investor';
 
     const newUser = await User.create({
@@ -43,13 +41,14 @@ export const registerUser = async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    res.status(201).json({ message: 'User registered successfully', token, user: newUser });
-  } catch (error) {
-    console.error('Register error (full):', error);
-    res.status(500).json({
-      message: 'Registration failed',
-      error: error.message,
+    res.status(201).json({
+      message: 'User registered successfully',
+      token,
+      user: { id: newUser.user_id, email: newUser.email, role: newUser.role },
     });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
 };
 
@@ -64,11 +63,8 @@ export const listAdmins = async (req, res) => {
 
     res.json({ admins });
   } catch (error) {
-    console.error('List admins error (full):', error);
-    res.status(500).json({
-      message: 'Failed to fetch admins',
-      error: error.message,
-    });
+    console.error('List admins error:', error);
+    res.status(500).json({ error: 'Failed to fetch admins' });
   }
 };
 
@@ -78,12 +74,12 @@ export const createAdmin = async (req, res) => {
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-      return res.status(400).json({ message: 'username, email, and password are required' });
+      return res.status(400).json({ error: 'username, email, and password are required' });
     }
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ error: 'User already exists with this email' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -97,11 +93,8 @@ export const createAdmin = async (req, res) => {
 
     res.status(201).json({ message: 'Admin created', admin });
   } catch (error) {
-    console.error('Create admin error (full):', error);
-    res.status(500).json({
-      message: 'Failed to create admin',
-      error: error.message,
-    });
+    console.error('Create admin error:', error);
+    res.status(500).json({ error: 'Failed to create admin' });
   }
 };
 
@@ -112,11 +105,11 @@ export const updateAdmin = async (req, res) => {
     const { username, email, password } = req.body;
 
     const admin = await User.findOne({ where: { user_id: id, role: 'admin' } });
-    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+    if (!admin) return res.status(404).json({ error: 'Admin not found' });
 
     if (email && email !== admin.email) {
       const conflict = await User.findOne({ where: { email } });
-      if (conflict) return res.status(400).json({ message: 'Email already in use' });
+      if (conflict) return res.status(400).json({ error: 'Email already in use' });
       admin.email = email;
     }
 
@@ -127,11 +120,8 @@ export const updateAdmin = async (req, res) => {
 
     res.json({ message: 'Admin updated', admin });
   } catch (error) {
-    console.error('Update admin error (full):', error);
-    res.status(500).json({
-      message: 'Failed to update admin',
-      error: error.message,
-    });
+    console.error('Update admin error:', error);
+    res.status(500).json({ error: 'Failed to update admin' });
   }
 };
 
@@ -141,40 +131,34 @@ export const deleteAdmin = async (req, res) => {
     const { id } = req.params;
 
     const admin = await User.findOne({ where: { user_id: id, role: 'admin' } });
-    if (!admin) return res.status(404).json({ message: 'Admin not found' });
-
-    // Optional: prevent deleting the only super admin if super admin shares an ID somehow.
-    // In this schema, super_admin has role 'super_admin' so deleting admins is safe.
+    if (!admin) return res.status(404).json({ error: 'Admin not found' });
 
     await admin.destroy();
 
     res.json({ message: 'Admin deleted' });
   } catch (error) {
-    console.error('Delete admin error (full):', error);
-    res.status(500).json({
-      message: 'Failed to delete admin',
-      error: error.message,
-    });
+    console.error('Delete admin error:', error);
+    res.status(500).json({ error: 'Failed to delete admin' });
   }
 };
 
-// Login user
+// Login user — returns { userId, email, token } on success
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+      return res.status(400).json({ error: 'Email and password are required' });
     }
 
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     const token = jwt.sign(
@@ -184,8 +168,10 @@ export const loginUser = async (req, res) => {
     );
 
     res.json({
-      message: 'Login successful',
+      userId: user.user_id,
+      email: user.email,
       token,
+      // Keep user object for backward compatibility with AuthContext
       user: {
         id: user.user_id,
         email: user.email,
@@ -193,11 +179,7 @@ export const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Login error (full):', error);
-    res.status(500).json({
-      message: 'Login failed',
-      error: error.message,
-    });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed. Please try again.' });
   }
 };
-

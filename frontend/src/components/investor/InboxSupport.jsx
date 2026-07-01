@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import useAuth from '../../hooks/useAuth';
-import { sendMessage, getInboxMessages, getPrimaryAdmin } from '../../services/messageService';
+import { sendMessage, getInboxMessages } from '../../services/messageService';
 
 export default function InboxSupport() {
   const { user } = useAuth();
