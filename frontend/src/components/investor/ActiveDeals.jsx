@@ -53,13 +53,13 @@ function StatusPill({ status }) {
   let color = 'rgba(255,255,255,0.18)';
   let textColor = 'var(--text)';
 
-  if (['verified', 'active', 'completed', 'funded'].includes(s)) {
+  if (['active'].includes(s)) {
     color = 'rgba(46,204,113,0.18)';
     textColor = 'var(--ok)';
   } else if (['pending'].includes(s)) {
     color = 'rgba(91,140,255,0.18)';
     textColor = 'var(--primary)';
-  } else if (['closed', 'refunded'].includes(s)) {
+  } else if (['completed', 'cancelled'].includes(s)) {
     color = 'rgba(255,77,77,0.18)';
     textColor = 'var(--danger)';
   }

@@ -14,6 +14,7 @@ import dealRoutes from './routes/dealRoutes.js';
 import investmentRoutes from './routes/investmentRoutes.js';
 import profitRoutes from './routes/profitRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import payoutRoutes from './routes/payoutRoutes.js';
 import investorRoutes from './routes/investorRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
@@ -44,6 +45,7 @@ app.use('/api/deals', dealRoutes);          // includes create, approve, cancel,
 app.use('/api/investments', investmentRoutes); // includes commit, verify, profit update, legacy create
 app.use('/api/profits', profitRoutes);      // includes get profits, update profit by investmentId
 app.use('/api/payments', paymentRoutes);
+app.use('/api/payouts', payoutRoutes);
 app.use('/api/investors', investorRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/messages', messageRoutes);    // includes send, get, verify, delete

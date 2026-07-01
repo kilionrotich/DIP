@@ -26,7 +26,7 @@ export async function getInvestmentsByDeal(dealId) {
 
 // Investor: commit to a deal (creates investment + proof)
 export async function commitInvestment(dealId, payload) {
-  const { data } = await api.post(`/api/deals/${dealId}/invest`, payload);
+  const { data } = await api.post(`/api/investments/${dealId}/commit`, payload);
   return data;
 }
 
@@ -38,7 +38,7 @@ export async function verifyInvestment(investmentId) {
 
 // Admin: update profit for an investment
 export async function updateProfit(investmentId, profit) {
-  const { data } = await api.put(`/api/investments/${investmentId}/profit`, { profit });
+  const { data } = await api.put('/api/profits/update', { investment_id: investmentId, profit });
   return data;
 }
 

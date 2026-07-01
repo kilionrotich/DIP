@@ -82,6 +82,21 @@ export default function InvestorDashboard() {
     };
   }, [investments, profitsRows]);
 
+  const pendingInvestments = useMemo(
+    () => (Array.isArray(investments) ? investments.filter((i) => String(i.status).toLowerCase() === 'pending') : []),
+    [investments]
+  );
+
+  const activeInvestments = useMemo(
+    () => (Array.isArray(investments) ? investments.filter((i) => String(i.status).toLowerCase() === 'active') : []),
+    [investments]
+  );
+
+  const historyInvestments = useMemo(
+    () => (Array.isArray(investments) ? investments.filter((i) => String(i.status).toLowerCase() === 'completed') : []),
+    [investments]
+  );
+
   return (
     <div className="container">
       <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
@@ -102,7 +117,37 @@ export default function InvestorDashboard() {
       <div style={{ height: 18 }} />
 
       {/* Active Deals + Active Deals table */}
-      <ActiveDeals investments={investments} loading={loading} />
+      <ActiveDeals investments={activeInvestments} loading={loading} />
+
+      <div style={{ height: 18 }} />
+
+      <h3 style={{ margin: '0 0 12px 0' }}>Pending Deals</h3>
+      {loading ? (
+        <div className="alert">Loading pending deals…</div>
+      ) : pendingInvestments.length === 0 ? (
+        <div style={{ color: 'var(--muted)' }}>No pending deals.</div>
+      ) : (
+        <div className="card" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: 'var(--muted)' }}>
+                <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Deal</th>
+                <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Amount</th>
+                <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>M-Pesa Code</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingInvestments.map((inv) => (
+                <tr key={inv.id || inv.investment_id}>
+                  <td style={{ padding: '10px 6px' }}>{inv.deal?.title || `#${inv.deal_id}`}</td>
+                  <td style={{ padding: '10px 6px' }}>{Number(inv.amount_invested || 0).toLocaleString()} KES</td>
+                  <td style={{ padding: '10px 6px' }}>{inv.mpesa_code || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div style={{ height: 18 }} />
 
@@ -137,7 +182,7 @@ export default function InvestorDashboard() {
       <div style={{ height: 18 }} />
 
       {/* Investment History */}
-      <InvestmentHistory investments={investments} loading={loading} />
+      <InvestmentHistory investments={historyInvestments} loading={loading} />
 
       <div style={{ height: 18 }} />
 

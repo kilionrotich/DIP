@@ -23,7 +23,7 @@ export async function createPayment(req, res) {
 
     res.status(201).json(payment);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 }
 
@@ -36,7 +36,7 @@ export async function getPayments(req, res) {
 
     res.status(200).json({ payments });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 }
 
@@ -71,7 +71,7 @@ export async function verifyPaymentProof(req, res) {
 
     return res.json({ message: 'Payment proof verified', proof, reason: reason ?? null });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -105,7 +105,7 @@ export async function rejectPaymentProof(req, res) {
 
     return res.json({ message: 'Payment proof rejected', proof, reason: reason ?? null });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -118,7 +118,7 @@ export async function getPaymentProofs(req, res) {
 
     res.json({ proofs });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 }
 

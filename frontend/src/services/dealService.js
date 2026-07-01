@@ -66,7 +66,7 @@ export async function approveDeal(dealId) {
 
 // Admin: close a deal
 export async function closeDeal(dealId) {
-  const { data } = await api.post(`/api/deals/${dealId}/close`);
+  const { data } = await api.put(`/api/deals/${dealId}/close`);
   return data;
 }
 

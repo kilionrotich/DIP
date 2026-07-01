@@ -15,10 +15,8 @@ function formatKES(val) {
 function StatusBadge({ status }) {
   const styles = {
     pending: { bg: 'rgba(241,196,15,0.15)', color: '#f1c40f', label: 'Pending' },
-    verified: { bg: 'rgba(46,204,113,0.15)', color: '#2ecc71', label: 'Verified' },
     active: { bg: 'rgba(46,204,113,0.15)', color: '#2ecc71', label: 'Approved' },
     completed: { bg: 'rgba(155,89,182,0.15)', color: '#9b59b6', label: 'Completed' },
-    refunded: { bg: 'rgba(231,76,60,0.15)', color: '#e74c3c', label: 'Refunded' },
   };
   const s = styles[status?.toLowerCase()] || styles.pending;
   return (
@@ -248,9 +246,9 @@ export default function DealDetails() {
                     <div style={{ fontSize: 13, color: 'var(--muted)' }}>
                       {formatKES(inv.amount_invested || inv.amount)}
                     </div>
-                    {inv.transaction_id && (
+                    {(inv.mpesa_code || inv.transaction_id) && (
                       <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                        Ref: {inv.transaction_id}
+                        Ref: {inv.mpesa_code || inv.transaction_id}
                       </div>
                     )}
                     {/* Admin verify button */}

@@ -22,8 +22,21 @@ const Investment = sequelize.define('Investment', {
     defaultValue: DataTypes.NOW,
   },
   status: {
-    type: DataTypes.ENUM('pending', 'verified', 'active', 'completed', 'refunded'),
+    type: DataTypes.ENUM('pending', 'active', 'completed'),
     defaultValue: 'pending',
+  },
+  profit: {
+    type: DataTypes.DECIMAL(12, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  mpesa_code: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  proof_url: {
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   investor_id: {
     type: DataTypes.INTEGER,
@@ -44,6 +57,12 @@ const Investment = sequelize.define('Investment', {
 }, {
   tableName: 'investments',
   timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['deal_id'],
+    },
+  ],
 });
 
 // Associations

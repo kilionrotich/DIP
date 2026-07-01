@@ -22,24 +22,19 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
     const cleanProofUrl = (paymentProofUrl || '').trim();
     const cleanTxId = (transactionId || '').trim();
 
-    // Backend requires either paymentProofUrl (or file upload later) OR transaction_id.
+    // Require at least one proof identifier to reduce failed commits.
     if (!cleanProofUrl && !cleanTxId) {
-      setError('Transaction ID or Payment Proof URL is required');
+      setError('M-Pesa code or proof URL is required');
       return;
     }
 
     setLoading(true);
     try {
       const payload = {
-        // backend enforces fixed amount from the deal record; client sends for completeness only
+        investor_id: user?._id || user?.id,
         amount: fixedAmount != null ? Number(fixedAmount) : undefined,
-        type: commitType,
-        investorId: user?._id || user?.id,
-
-        // PaymentProof fields consumed by backend route POST /api/deals/:dealId/invest
-        // (file upload not implemented yet)
-        paymentProofUrl: cleanProofUrl || undefined,
-        transaction_id: cleanTxId || undefined,
+        mpesa_code: cleanTxId || undefined,
+        proof_url: cleanProofUrl || undefined,
 
       };
 

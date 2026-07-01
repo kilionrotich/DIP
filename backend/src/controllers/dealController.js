@@ -2,6 +2,7 @@
 import Deal from '../models/Deal.js';
 import { Op } from 'sequelize';
 import Investment from '../models/Investment.js';
+
 export async function createDeal(req, res) {
   try {
     let {
@@ -40,12 +41,12 @@ export async function createDeal(req, res) {
       expected_return,
       start_date,
       end_date,
-      status: status || 'open', // default lifecycle start
+      status: 'open', // lifecycle starts in open regardless of request payload
     });
 
     res.status(201).json(deal);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 }
 
@@ -100,29 +101,12 @@ export async function getDeals(req, res) {
 // Lifecycle: Open deals -> no committed investors yet
 export async function getActiveDeals(req, res) {
   try {
-    const Investment = (await import('../models/Investment.js')).default;
-
-    // Find all open deals
     const deals = await Deal.findAll({
       where: { status: 'open' },
       order: [['deal_id', 'DESC']],
     });
 
-    // Filter out deals that already have active investments (Available Opportunities only)
-    const availableDeals = [];
-    for (const deal of deals) {
-      const activeInvestment = await Investment.findOne({
-        where: {
-          deal_id: deal.deal_id,
-          status: { [Op.in]: ["active", "pending"] },
-        },
-      });
-      if (!activeInvestment) {
-        availableDeals.push(deal);
-      }
-    }
-
-    res.json(availableDeals);
+    res.json(deals);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -132,21 +116,8 @@ export async function getActiveDeals(req, res) {
 // Lifecycle: Deal has active investment and Admin verified payment
 export async function getInProgressDeals(req, res) {
   try {
-    const Investment = (await import('../models/Investment.js')).default;
-
-    // Find all active investments and get their deal_ids
-    const activeInvestments = await Investment.findAll({
-      where: { status: { [Op.in]: ["active", "pending"] } },
-      attributes: ['deal_id'],
-    });
-
-    const dealIdsWithActive = [...new Set(activeInvestments.map(inv => inv.deal_id))];
-
-    // Fetch deals that have active investments
     const deals = await Deal.findAll({
-      where: {
-        deal_id: dealIdsWithActive,
-      },
+      where: { status: 'active' },
       order: [['deal_id', 'DESC']],
     });
 
@@ -181,7 +152,7 @@ export async function updateDeal(req, res) {
 
     return res.json(deal);
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -204,7 +175,7 @@ export async function cancelDeal(req, res) {
     await deal.destroy();
     return res.json({ message: 'Deal deleted', dealId });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -219,28 +190,39 @@ export async function approveDeal(req, res) {
       return res.status(400).json({ error: 'Only open deals can be approved' });
     }
 
-    await deal.update({ status: 'approved' });
+    await deal.update({ status: 'pending' });
     return res.json({ message: 'Deal approved', deal });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 
 // Close deal (Admin)
 export async function closeDeal(req, res) {
   try {
-    const { dealId } = req.params;
+    const dealId = req.params.id || req.params.dealId;
     const deal = await Deal.findByPk(dealId);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-    if (deal.status !== 'approved' && deal.status !== 'active') {
-      return res.status(400).json({ error: 'Only approved/active deals can be closed' });
+    if (deal.status !== 'active') {
+      return res.status(400).json({ error: 'Only active deals can be closed' });
     }
 
     await deal.update({ status: 'completed' });
+
+    await Investment.update(
+      { status: 'completed' },
+      {
+        where: {
+          deal_id: deal.deal_id,
+          status: { [Op.in]: ['pending', 'active'] },
+        },
+      }
+    );
+
     return res.json({ message: 'Deal closed', deal });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 

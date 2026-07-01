@@ -2,6 +2,13 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
+function getJwtSecret() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured');
+  }
+  return process.env.JWT_SECRET;
+}
+
 // Register user
 export const registerUser = async (req, res) => {
   try {
@@ -32,7 +39,7 @@ export const registerUser = async (req, res) => {
 
     const token = jwt.sign(
       { id: newUser.user_id, email: newUser.email, role: newUser.role },
-      process.env.JWT_SECRET || 'fallback_secret',
+      getJwtSecret(),
       { expiresIn: '1d' }
     );
 
@@ -42,7 +49,6 @@ export const registerUser = async (req, res) => {
     res.status(500).json({
       message: 'Registration failed',
       error: error.message,
-      stack: error.stack,
     });
   }
 };
@@ -62,7 +68,6 @@ export const listAdmins = async (req, res) => {
     res.status(500).json({
       message: 'Failed to fetch admins',
       error: error.message,
-      stack: error.stack,
     });
   }
 };
@@ -96,7 +101,6 @@ export const createAdmin = async (req, res) => {
     res.status(500).json({
       message: 'Failed to create admin',
       error: error.message,
-      stack: error.stack,
     });
   }
 };
@@ -127,7 +131,6 @@ export const updateAdmin = async (req, res) => {
     res.status(500).json({
       message: 'Failed to update admin',
       error: error.message,
-      stack: error.stack,
     });
   }
 };
@@ -151,7 +154,6 @@ export const deleteAdmin = async (req, res) => {
     res.status(500).json({
       message: 'Failed to delete admin',
       error: error.message,
-      stack: error.stack,
     });
   }
 };
@@ -177,7 +179,7 @@ export const loginUser = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.user_id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'fallback_secret',
+      getJwtSecret(),
       { expiresIn: '1d' }
     );
 
@@ -195,7 +197,6 @@ export const loginUser = async (req, res) => {
     res.status(500).json({
       message: 'Login failed',
       error: error.message,
-      stack: error.stack,
     });
   }
 };

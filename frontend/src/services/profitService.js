@@ -8,6 +8,6 @@ export async function getProfits() {
 
 // Admin: update profit for a specific investment
 export async function updateProfit(investmentId, profit) {
-  const { data } = await api.put(`/api/profits/${investmentId}`, { profit });
+  const { data } = await api.put('/api/profits/update', { investment_id: investmentId, profit });
   return data;
 }

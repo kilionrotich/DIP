@@ -16,7 +16,9 @@ export default function InvestmentHistory({ investments, loading }) {
             <thead>
               <tr style={{ textAlign: 'left', color: 'var(--muted)' }}>
                 <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Deal</th>
-                <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Amount</th>
+                <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Capital</th>
+                <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Profit</th>
+                <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Total</th>
                 <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Date</th>
                 <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Outcome</th>
                 <th style={{ padding: '10px 6px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Receipt</th>
@@ -25,8 +27,16 @@ export default function InvestmentHistory({ investments, loading }) {
             <tbody>
               {rows.map((inv) => (
                 <tr key={inv.id || inv.investment_id}>
+                  {(() => {
+                    const capital = Number(inv.amount_invested ?? inv.amount ?? 0);
+                    const profit = Number(inv.profit ?? 0);
+                    const total = capital + profit;
+                    return (
+                      <>
                   <td style={{ padding: '10px 6px' }}>#{inv.deal_id}</td>
-                  <td style={{ padding: '10px 6px' }}>{inv.amount_invested ?? inv.amount ?? 0}</td>
+                  <td style={{ padding: '10px 6px' }}>{capital.toLocaleString()} KES</td>
+                  <td style={{ padding: '10px 6px' }}>{profit.toLocaleString()} KES</td>
+                  <td style={{ padding: '10px 6px' }}>{total.toLocaleString()} KES</td>
                   <td style={{ padding: '10px 6px' }}>{formatDate(inv.investment_date)}</td>
                   <td style={{ padding: '10px 6px' }}>{inv.status || '—'}</td>
                   <td style={{ padding: '10px 6px' }}>
@@ -34,6 +44,9 @@ export default function InvestmentHistory({ investments, loading }) {
                       Download
                     </button>
                   </td>
+                      </>
+                    );
+                  })()}
                 </tr>
               ))}
             </tbody>

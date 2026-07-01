@@ -82,6 +82,12 @@ export default function AdminDashboard() {
     profit: '',
   });
 
+  const [payoutForm, setPayoutForm] = useState({
+    investment_id: '',
+    capital: '',
+    profit: '',
+  });
+
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
@@ -1012,6 +1018,31 @@ export default function AdminDashboard() {
             <button type="submit">Update Profit</button>
           </form>
         </div>
+
+        <div style={{ height: 18 }} />
+        <div className="card">
+          <h3>Send Payout</h3>
+          <form onSubmit={handlePayoutSubmit}>
+            <input
+              placeholder="Investment ID"
+              value={payoutForm.investment_id}
+              onChange={(e) => setPayoutForm({ ...payoutForm, investment_id: e.target.value })}
+            />
+            <input
+              type="number"
+              placeholder="Capital"
+              value={payoutForm.capital}
+              onChange={(e) => setPayoutForm({ ...payoutForm, capital: e.target.value })}
+            />
+            <input
+              type="number"
+              placeholder="Profit"
+              value={payoutForm.profit}
+              onChange={(e) => setPayoutForm({ ...payoutForm, profit: e.target.value })}
+            />
+            <button type="submit">Send Payout</button>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -1033,10 +1064,30 @@ export default function AdminDashboard() {
     setMessage(null);
     setError(null);
     try {
-      await api.put('/api/profits/' + profitForm.investment_id, { profit: profitForm.profit });
+      await api.put('/api/profits/update', {
+        investment_id: profitForm.investment_id,
+        profit: profitForm.profit,
+      });
       setMessage('Profit updated successfully!');
     } catch (err) {
       setError(err.response?.data?.error || 'Error updating profit');
+    }
+  }
+
+  async function handlePayoutSubmit(e) {
+    e.preventDefault();
+    setMessage(null);
+    setError(null);
+    try {
+      await api.post('/api/payouts', {
+        investment_id: payoutForm.investment_id,
+        capital: payoutForm.capital,
+        profit: payoutForm.profit,
+      });
+      setMessage('Payout sent successfully!');
+      setPayoutForm({ investment_id: '', capital: '', profit: '' });
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error sending payout');
     }
   }
 }
