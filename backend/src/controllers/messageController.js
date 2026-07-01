@@ -2,8 +2,22 @@ import Message from '../models/Message.js';
 import User from '../models/User.js';
 import Admin from '../models/Admin.js';
 
-// Investor/Admin sends a message to another user.
-// If recipient_id is not provided, auto-resolve to the primary admin.
+const ADMIN_EMAIL = 'anthonypyatich@gmail.com';
+
+// Helper: find admin by hardcoded email
+async function getAdminByEmail() {
+  return await Admin.findOne({
+    include: [
+      {
+        model: User,
+        as: 'user',
+        where: { email: ADMIN_EMAIL, role: 'admin' },
+      },
+    ],
+  });
+}
+
+// Send a message. If no recipient specified, routes to the hardcoded admin.
 export async function sendMessage(req, res) {
   try {
     let { recipient_id, receiver_id, subject, body } = req.body;
@@ -11,20 +25,18 @@ export async function sendMessage(req, res) {
     const sender_id = req.user?.id ?? req.user?.user_id;
     if (!sender_id) return res.status(403).json({ error: 'Unauthorized' });
 
-    // Accept either recipient_id or receiver_id
+    // Accept either field name, resolve to hardcoded admin if missing
     const targetReceiverId = recipient_id || receiver_id;
 
     if (!targetReceiverId) {
-      // Auto-resolve primary admin
-      const primary = await Admin.findOne({
-        where: { is_primary: true },
-      });
-      if (!primary) {
-        return res.status(404).json({ error: 'No primary admin found. Contact support.' });
+      const admin = await getAdminByEmail();
+      if (!admin) {
+        return res.status(404).json({
+          error: 'Admin contact not found. Please contact support@dip.com.',
+        });
       }
-      // Use the admin's user_id as the receiver_id
-      receiver_id = primary.user_id;
-      recipient_id = primary.admin_id;
+      receiver_id = admin.user_id;
+      recipient_id = admin.admin_id;
     } else {
       receiver_id = targetReceiverId;
     }
@@ -36,7 +48,7 @@ export async function sendMessage(req, res) {
       return res.status(400).json({ error: 'Missing/invalid body' });
     }
 
-    // Ensure receiver exists
+    // Verify receiver exists
     const receiver = await User.findByPk(receiver_id);
     if (!receiver) return res.status(404).json({ error: 'Receiver not found' });
 
@@ -51,9 +63,21 @@ export async function sendMessage(req, res) {
 
     const withUsers = await Message.findByPk(message.message_id, {
       include: [
-        { model: User, as: 'sender', attributes: ['user_id', 'username', 'email', 'role'] },
-        { model: User, as: 'receiver', attributes: ['user_id', 'username', 'email', 'role'] },
-        { model: Admin, as: 'recipient', attributes: ['admin_id', 'is_primary'] },
+        {
+          model: User,
+          as: 'sender',
+          attributes: ['user_id', 'username', 'email', 'role'],
+        },
+        {
+          model: User,
+          as: 'receiver',
+          attributes: ['user_id', 'username', 'email', 'role'],
+        },
+        {
+          model: Admin,
+          as: 'recipient',
+          attributes: ['admin_id', 'user_id'],
+        },
       ],
     });
 
@@ -64,28 +88,30 @@ export async function sendMessage(req, res) {
 }
 
 // Get inbox messages for the authenticated user.
-// Optionally filter by sender_id (for thread-like view).
 export async function getMessages(req, res) {
   try {
-    const receiver_id = req.user?.id ?? req.user?.user_id;
-    if (!receiver_id) return res.status(403).json({ error: 'Unauthorized' });
+    const currentUserId = req.user?.id ?? req.user?.user_id;
+    if (!currentUserId) return res.status(403).json({ error: 'Unauthorized' });
 
     const { sender_id } = req.query;
-
-    const where = { receiver_id };
+    const where = { receiver_id: currentUserId };
     if (sender_id) where.sender_id = sender_id;
 
     const messages = await Message.findAll({
       where,
       order: [['created_at', 'DESC']],
       include: [
-        { model: User, as: 'sender', attributes: ['user_id', 'username', 'email', 'role'] },
+        {
+          model: User,
+          as: 'sender',
+          attributes: ['user_id', 'username', 'email', 'role'],
+        },
       ],
     });
 
     res.json({ messages });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -102,7 +128,7 @@ export async function verifyMessage(req, res) {
 
     res.json({ success: true });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -116,6 +142,6 @@ export async function deleteMessage(req, res) {
 
     res.json({ success: true });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }

@@ -32,15 +32,16 @@ import Profit from './models/Profit.js';
       role: 'investor',
     });
 
+    // Create admin user with the email hardcoded in messageController
     const adminPasswordHash = await bcrypt.hash('admin123', 10);
     const adminUser = await User.create({
-      username: 'admin1',
-      email: 'admin@example.com',
+      username: 'anthonypyatich',
+      email: 'anthonypyatich@gmail.com',
       password: adminPasswordHash,
       role: 'admin',
     });
 
-    // Create primary admin record linking to admin user
+    // Create admin record linking to the admin user
     await Admin.create({
       user_id: adminUser.user_id,
       is_primary: true,
