@@ -1,47 +1,41 @@
 import Message from '../models/Message.js';
 import User from '../models/User.js';
 import Admin from '../models/Admin.js';
+import InvestorAdmin from '../models/InvestorAdmin.js';
 
-// Helper: resolve the (single) admin that should receive investor messages.
-// Requirement: route to the first admin in the database.
-async function getPrimaryAdminOrFirst() {
-  const admin = await Admin.findOne({
-    order: [['created_at', 'ASC']],
+// Helper: resolve the approved admin that should receive messages from the given investor.
+// investor_user_id refers to users.user_id
+async function getApprovedAdminForInvestorOrNull(investor_user_id) {
+  const { Op } = (await import('sequelize')).Op;
+  const approval = await InvestorAdmin.findOne({
+
+    where: {
+      investor_id: investor_user_id,
+      approved_at: { [Op.ne]: null },
+    },
     include: [
       {
-        model: User,
-        as: 'user',
-        attributes: ['user_id', 'email', 'username', 'role'],
+        model: Admin,
+        as: 'admin',
       },
     ],
   });
 
-  return admin;
+
+  return approval?.admin || null;
 }
 
-// Send a message. Always routes to the first admin.
-
+// Send a message.
+// - Investors: route to their approved admin.
+// - Admins/Super-admin: allow sending but still route to their own approved admin mapping if applicable.
 export async function sendMessage(req, res) {
   try {
     const { subject, body } = req.body || {};
 
     const sender_id = req.user?.id ?? req.user?.user_id;
-
-    if (!sender_id) return res.status(403).json({ error: 'Unauthorized' });
-
-    // This system belongs to only one person.
-    // Ignore any client-provided recipient/receiver and route to the first admin.
-    const admin = await getPrimaryAdminOrFirst();
-    if (!admin) {
-      return res.status(404).json({ error: 'No admin account found' });
+    if (!sender_id) {
+      return res.status(404).json({ error: 'No account found' });
     }
-
-    const receiver_id = admin.user_id;
-    const recipient_id = admin.admin_id;
-
-
-
-
 
     if (!subject || typeof subject !== 'string') {
       return res.status(400).json({ error: 'Missing/invalid subject' });
@@ -50,20 +44,35 @@ export async function sendMessage(req, res) {
       return res.status(400).json({ error: 'Missing/invalid body' });
     }
 
-    // Verify receiver exists
-    const receiver = await User.findByPk(receiver_id);
-    if (!receiver) return res.status(404).json({ error: 'Receiver not found' });
+    // Determine recipient admin for the sender.
+    const senderUser = await User.findByPk(sender_id);
+    if (!senderUser) {
+      return res.status(404).json({ error: 'No account found' });
+    }
 
-    const message = await Message.create({
-      sender_id,
+    const admin = await getApprovedAdminForInvestorOrNull(senderUser.user_id);
+    if (!admin) {
+      return res.status(404).json({ error: 'Investor not approved by any admin' });
+    }
+
+    const receiver_id = admin.user_id; // Message.receiver_id is users.user_id
+    const recipient_id = admin.admin_id; // Message.recipient_id is admins.admin_id
+
+    const receiver = await User.findByPk(receiver_id);
+    if (!receiver) {
+      return res.status(404).json({ error: 'No account found' });
+    }
+
+    const created = await Message.create({
+      sender_id: senderUser.user_id,
       receiver_id,
-      recipient_id: recipient_id || null,
+      recipient_id,
       subject: subject.trim(),
       body: body.trim(),
       status: 'sent',
     });
 
-    const withUsers = await Message.findByPk(message.message_id, {
+    const withUsers = await Message.findByPk(created.message_id, {
       include: [
         {
           model: User,
@@ -85,25 +94,30 @@ export async function sendMessage(req, res) {
 
     return res.status(201).json(withUsers);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err?.message || 'Failed to send message' });
   }
 }
 
-// Get inbox messages for the (single) admin.
+// Get inbox messages for the authenticated admin.
 export async function getMessages(req, res) {
   try {
-    const admin = await getPrimaryAdminOrFirst();
+    const adminUserId = req.user?.id ?? req.user?.user_id;
+    if (!adminUserId) {
+      return res.status(404).json({ error: 'No account found' });
+    }
+
+    const admin = await Admin.findOne({
+      where: { user_id: adminUserId },
+    });
+
     if (!admin) {
       return res.status(404).json({ error: 'No admin account found' });
     }
 
-    const { sender_id } = req.query;
-
-    const where = { receiver_id: admin.user_id };
-    if (sender_id) where.sender_id = sender_id;
-
     const messages = await Message.findAll({
-      where,
+      where: {
+        receiver_id: admin.user_id,
+      },
       order: [['created_at', 'DESC']],
       include: [
         {
@@ -116,10 +130,9 @@ export async function getMessages(req, res) {
 
     return res.json({ messages });
   } catch (err) {
-    return res.status(500).json({ error: 'Failed to fetch messages' });
+    return res.status(500).json({ error: err?.message || 'Failed to fetch messages' });
   }
 }
-
 
 // Admin verifies a message.
 export async function verifyMessage(req, res) {
@@ -127,14 +140,10 @@ export async function verifyMessage(req, res) {
     const messageId = req.params.messageId || req.body.message_id;
     if (!messageId) return res.status(400).json({ error: 'Missing message_id' });
 
-    await Message.update(
-      { status: 'verified' },
-      { where: { message_id: messageId } }
-    );
-
-    res.json({ success: true });
+    await Message.update({ status: 'verified' }, { where: { message_id: messageId } });
+    return res.json({ success: true });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err?.message || 'Failed to verify message' });
   }
 }
 
@@ -145,9 +154,9 @@ export async function deleteMessage(req, res) {
     if (!messageId) return res.status(400).json({ error: 'Missing message_id' });
 
     await Message.destroy({ where: { message_id: messageId } });
-
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err?.message || 'Failed to delete message' });
   }
 }
+

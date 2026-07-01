@@ -888,8 +888,6 @@ export default function AdminDashboard() {
                             if (!replyBody.trim()) throw new Error('Reply is required');
 
                             await sendMessage({
-                              receiver_id:
-                                selectedMessage.sender_id ?? selectedMessage.sender?.user_id,
                               subject: 'Re: ' + (selectedMessage.subject || ''),
                               body: replyBody,
                             });

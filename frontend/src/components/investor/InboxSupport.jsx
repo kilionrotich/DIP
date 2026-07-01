@@ -25,11 +25,13 @@ export default function InboxSupport() {
       const messages = await getInboxMessages();
       setInbox(Array.isArray(messages) ? messages : []);
     } catch (e) {
+      // If the endpoint is missing on the deployed backend, surface the raw message.
       setError(e?.response?.data?.error || e?.message || 'Failed to load inbox');
     } finally {
       setLoading(false);
     }
   }
+
 
   useEffect(() => {
     loadInbox();
@@ -56,9 +58,9 @@ export default function InboxSupport() {
 
     setSending(true);
     try {
-      // Send message without recipient_id — backend auto-resolves to primary admin
+      // Send message without recipient/admin params — backend routes to approved admin
       await sendMessage({ subject, body });
-      setSendMessageState('Message sent to primary admin.');
+      setSendMessageState('Message sent.');
       setBody('');
       await loadInbox();
     } catch (e2) {
@@ -74,6 +76,7 @@ export default function InboxSupport() {
 
       {error ? <div className="alert err">{error}</div> : null}
       {sendMessageState ? <div className="alert ok">{sendMessageState}</div> : null}
+
       {sendError ? <div className="alert err">{sendError}</div> : null}
 
       <div style={{ height: 10 }} />

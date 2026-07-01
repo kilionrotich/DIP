@@ -8,12 +8,13 @@ export async function sendMessage(payload) {
 }
 
 
-export async function getInboxMessages({ sender_id } = {}) {
-  const params = {};
-  if (sender_id) params.sender_id = sender_id;
-  const { data } = await api.get('/api/messages', { params });
+export async function getInboxMessages() {
+  // Backend messages route is defined as GET /api/messages (mounting /api/messages with router '/').
+  // It returns: { messages: [...] }
+  const { data } = await api.get('/api/messages');
   return data?.messages || [];
 }
+
 
 export async function getPrimaryAdmin() {
   const { data } = await api.get('/api/admins/primary');
