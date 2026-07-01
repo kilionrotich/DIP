@@ -894,7 +894,11 @@ export default function AdminDashboard() {
                       </div>
                       {d.expected_return !== undefined && d.expected_return !== null && d.expected_return !== '' && (
                         <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-                          Expected Return: {Number(d.expected_return)}
+                          Expected Return: {(() => {
+                            const cleaned = String(d.expected_return ?? '').replace('%', '');
+                            const n = Number(cleaned);
+                            return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-';
+                          })()}
                         </div>
                       )}
                     </div>

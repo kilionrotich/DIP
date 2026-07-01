@@ -57,7 +57,14 @@ export default function DealCrad({ deal }) {
       {deal?.expected_return ? (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6 }}>
           <div style={{ color: 'var(--muted)', fontSize: 13 }}>Expected Return</div>
-          <div style={{ fontWeight: 800, color: '#2ecc71' }}>{deal.expected_return}%</div>
+          <div style={{ fontWeight: 800, color: '#2ecc71' }}>
+            {(() => {
+              const raw = deal?.expected_return;
+              const cleaned = String(raw ?? '').replace('%', '');
+              const n = Number(cleaned);
+              return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-';
+            })()}
+          </div>
         </div>
       ) : null}
 

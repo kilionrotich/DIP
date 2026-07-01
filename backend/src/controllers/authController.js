@@ -198,7 +198,21 @@ export const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed. Please try again.' });
+    // Log full error so we can identify the real 500 cause on Render.
+    console.error('Login error:', {
+      message: error?.message,
+      name: error?.name,
+      stack: error?.stack,
+    });
+
+    // Return a more informative payload (avoid leaking internals too much, but
+    // provide enough context to diagnose issues like missing JWT_SECRET).
+    const statusCode = 500;
+    const safeError = error?.message ? String(error.message) : 'Login failed';
+
+    res.status(statusCode).json({
+      error: 'Login failed. Please try again.',
+      debug: safeError,
+    });
   }
 };

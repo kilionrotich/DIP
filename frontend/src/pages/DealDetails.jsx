@@ -169,7 +169,14 @@ export default function DealDetails() {
               {deal?.expected_return ? (
                 <div style={{ flex: 1, minWidth: 220 }}>
                   <div style={{ color: 'var(--muted)', fontSize: 13 }}>Expected Return</div>
-                  <div style={{ fontWeight: 900, color: '#2ecc71' }}>{deal.expected_return}%</div>
+                  <div style={{ fontWeight: 900, color: '#2ecc71' }}>
+                    {(() => {
+                      const raw = deal?.expected_return;
+                      const cleaned = String(raw ?? '').replace('%', '');
+                      const n = Number(cleaned);
+                      return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-';
+                    })()}
+                  </div>
                 </div>
               ) : null}
             </div>
