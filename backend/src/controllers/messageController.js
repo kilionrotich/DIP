@@ -87,36 +87,15 @@ export async function sendMessage(req, res) {
   }
 }
 
-// Get inbox messages.
-// For the admin user (anthonypyatich@gmail.com), fetches by recipient_id.
-// For other users (investors), fetches by receiver_id.
+// Get inbox messages for the authenticated user.
+// Uses receiver_id from JWT — works for both investors and admins.
 export async function getMessages(req, res) {
   try {
     const currentUserId = req.user?.id ?? req.user?.user_id;
     if (!currentUserId) return res.status(403).json({ error: 'Unauthorized' });
 
-    // Find the admin record — if current user is the admin, query by recipient_id
-    const admin = await Admin.findOne({
-      where: { user_id: currentUserId },
-      include: [
-        {
-          model: User,
-          as: 'user',
-          where: { email: ADMIN_EMAIL, role: 'admin' },
-        },
-      ],
-    });
-
-    let where;
-    if (admin) {
-      // Admin user: fetch messages where recipient_id = this admin's admin_id
-      where = { recipient_id: admin.admin_id };
-    } else {
-      // Investor or other user: fetch where receiver_id = their user_id
-      where = { receiver_id: currentUserId };
-    }
-
     const { sender_id } = req.query;
+    const where = { receiver_id: currentUserId };
     if (sender_id) where.sender_id = sender_id;
 
     const messages = await Message.findAll({
