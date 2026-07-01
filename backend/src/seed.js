@@ -1,6 +1,7 @@
 import { sequelize } from './config/db.js';
 import bcrypt from 'bcryptjs';
 import User from './models/User.js';
+import Admin from './models/Admin.js';
 import Deal from './models/Deal.js';
 import Investment from './models/Investment.js';
 import Profit from './models/Profit.js';
@@ -32,11 +33,17 @@ import Profit from './models/Profit.js';
     });
 
     const adminPasswordHash = await bcrypt.hash('admin123', 10);
-    await User.create({
+    const adminUser = await User.create({
       username: 'admin1',
       email: 'admin@example.com',
       password: adminPasswordHash,
       role: 'admin',
+    });
+
+    // Create primary admin record linking to admin user
+    await Admin.create({
+      user_id: adminUser.user_id,
+      is_primary: true,
     });
 
     // Create sample deals

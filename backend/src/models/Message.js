@@ -1,6 +1,7 @@
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../config/db.js';
 import User from './User.js';
+import Admin from './Admin.js';
 
 const Message = sequelize.define(
   'Message',
@@ -26,6 +27,15 @@ const Message = sequelize.define(
       references: {
         model: 'users',
         key: 'user_id',
+      },
+    },
+
+    recipient_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'admins',
+        key: 'admin_id',
       },
     },
 
@@ -59,6 +69,6 @@ User.hasMany(Message, { as: 'sent_messages', foreignKey: 'sender_id' });
 User.hasMany(Message, { as: 'received_messages', foreignKey: 'receiver_id' });
 Message.belongsTo(User, { as: 'sender', foreignKey: 'sender_id' });
 Message.belongsTo(User, { as: 'receiver', foreignKey: 'receiver_id' });
+Message.belongsTo(Admin, { as: 'recipient', foreignKey: 'recipient_id' });
 
 export default Message;
-

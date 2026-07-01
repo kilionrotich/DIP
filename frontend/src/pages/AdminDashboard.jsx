@@ -819,9 +819,6 @@ export default function AdminDashboard() {
           <>
             <h3 style={{ margin: '0 0 12px 0' }}>Messages & Replies</h3>
             <div className="card">
-              <div style={{ color: 'var(--muted)', marginBottom: 10 }}>
-                Coming soon — inbox/reply backend endpoints not implemented in this repo.
-              </div>
 
               <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 280, borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: 12 }}>
@@ -907,7 +904,7 @@ export default function AdminDashboard() {
                         {sendingReply ? 'Sending...' : 'Send Reply'}
                       </button>
                       <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
-                        Saved. Inbox reply endpoints may be implemented separately.
+                        Reply sent to the investor.
                       </div>
                     </>
                   ) : (
@@ -1091,8 +1088,3 @@ export default function AdminDashboard() {
     }
   }
 }
-
-
-
-
-

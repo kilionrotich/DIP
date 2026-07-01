@@ -1,8 +1,8 @@
 import api from './api';
 
 export async function sendMessage(payload) {
-  const { receiver_id, subject, body } = payload || {};
-  const { data } = await api.post('/api/messages', { receiver_id, subject, body });
+  const { recipient_id, receiver_id, subject, body } = payload || {};
+  const { data } = await api.post('/api/messages/send', { recipient_id, receiver_id, subject, body });
   return data;
 }
 
@@ -13,3 +13,7 @@ export async function getInboxMessages({ sender_id } = {}) {
   return data?.messages || [];
 }
 
+export async function getPrimaryAdmin() {
+  const { data } = await api.get('/api/admins/primary');
+  return data;
+}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import useAuth from '../../hooks/useAuth';
-import { sendMessage, getInboxMessages } from '../../services/messageService';
+import { sendMessage, getInboxMessages, getPrimaryAdmin } from '../../services/messageService';
 
 export default function InboxSupport() {
   const { user } = useAuth();
@@ -9,8 +9,6 @@ export default function InboxSupport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // sender=admin id is unknown; simplest: show all messages where receiver is current user.
-  // For sending, we’ll default to the first admin we can find in inbox (sender) or fallback to admin role search via inferred receiver.
   const [subject, setSubject] = useState('Deal inquiry');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -19,20 +17,12 @@ export default function InboxSupport() {
 
   const myId = user?._id || user?.id || user?.user_id;
 
-  const lastAdminSenderId = useMemo(() => {
-    // infer last admin sender from inbox messages
-    const firstAdmin = (inbox || []).find((m) => m?.sender?.role === 'admin' || m?.sender?.role === 'super_admin');
-    return firstAdmin?.sender?.user_id ?? firstAdmin?.sender_id;
-  }, [inbox]);
-
-
   async function loadInbox() {
     if (!myId) return;
     setLoading(true);
     setError(null);
     try {
       const messages = await getInboxMessages();
-      // getInboxMessages ignores sender_id and returns receiver inbox
       setInbox(Array.isArray(messages) ? messages : []);
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || 'Failed to load inbox');
@@ -43,25 +33,17 @@ export default function InboxSupport() {
 
   useEffect(() => {
     loadInbox();
-    // polling to avoid refresh requirement
     const t = setInterval(() => {
       loadInbox();
     }, 5000);
     return () => clearInterval(t);
-    // keep polling simple; dependency suppression avoided to satisfy eslint config
-  }, [myId, inbox]);
+  }, [myId]);
 
 
   async function onSubmit(e) {
     e.preventDefault();
     setSendError(null);
     setSendMessageState(null);
-
-    const receiver_id = lastAdminSenderId;
-    if (!receiver_id) {
-      setSendError('No admin contact found yet. Send will work after an admin message exists, or implement admin lookup endpoint.');
-      return;
-    }
 
     if (!subject.trim()) {
       setSendError('Subject is required');
@@ -74,8 +56,9 @@ export default function InboxSupport() {
 
     setSending(true);
     try {
-      await sendMessage({ receiver_id, subject, body });
-      setSendMessageState('Message sent.');
+      // Send message without recipient_id — backend auto-resolves to primary admin
+      await sendMessage({ subject, body });
+      setSendMessageState('Message sent to primary admin.');
       setBody('');
       await loadInbox();
     } catch (e2) {
@@ -170,12 +153,10 @@ export default function InboxSupport() {
           </form>
 
           <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
-            Sending targets the most recent admin that messaged you.
+            Messages are automatically routed to the primary admin.
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-

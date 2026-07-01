@@ -1,15 +1,34 @@
 import Message from '../models/Message.js';
 import User from '../models/User.js';
+import Admin from '../models/Admin.js';
 
 // Investor/Admin sends a message to another user.
+// If recipient_id is not provided, auto-resolve to the primary admin.
 export async function sendMessage(req, res) {
   try {
-    const { receiver_id, subject, body } = req.body;
+    let { recipient_id, receiver_id, subject, body } = req.body;
 
     const sender_id = req.user?.id ?? req.user?.user_id;
     if (!sender_id) return res.status(403).json({ error: 'Unauthorized' });
 
-    if (!receiver_id) return res.status(400).json({ error: 'Missing receiver_id' });
+    // Accept either recipient_id or receiver_id
+    const targetReceiverId = recipient_id || receiver_id;
+
+    if (!targetReceiverId) {
+      // Auto-resolve primary admin
+      const primary = await Admin.findOne({
+        where: { is_primary: true },
+      });
+      if (!primary) {
+        return res.status(404).json({ error: 'No primary admin found. Contact support.' });
+      }
+      // Use the admin's user_id as the receiver_id
+      receiver_id = primary.user_id;
+      recipient_id = primary.admin_id;
+    } else {
+      receiver_id = targetReceiverId;
+    }
+
     if (!subject || typeof subject !== 'string') {
       return res.status(400).json({ error: 'Missing/invalid subject' });
     }
@@ -24,6 +43,7 @@ export async function sendMessage(req, res) {
     const message = await Message.create({
       sender_id,
       receiver_id,
+      recipient_id: recipient_id || null,
       subject: subject.trim(),
       body: body.trim(),
       status: 'sent',
@@ -33,12 +53,13 @@ export async function sendMessage(req, res) {
       include: [
         { model: User, as: 'sender', attributes: ['user_id', 'username', 'email', 'role'] },
         { model: User, as: 'receiver', attributes: ['user_id', 'username', 'email', 'role'] },
+        { model: Admin, as: 'recipient', attributes: ['admin_id', 'is_primary'] },
       ],
     });
 
     return res.status(201).json(withUsers);
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -98,4 +119,3 @@ export async function deleteMessage(req, res) {
     return res.status(400).json({ error: err.message });
   }
 }
-

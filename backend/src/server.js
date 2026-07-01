@@ -18,6 +18,7 @@ import payoutRoutes from './routes/payoutRoutes.js';
 import investorRoutes from './routes/investorRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 // Initialize app
 const app = express();
@@ -49,6 +50,7 @@ app.use('/api/payouts', payoutRoutes);
 app.use('/api/investors', investorRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/messages', messageRoutes);    // includes send, get, verify, delete
+app.use('/api/admins', adminRoutes);        // primary admin lookup
 
 // Default route
 app.get('/', (req, res) => {
