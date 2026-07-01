@@ -55,8 +55,9 @@ export default function InvestmentHistory({ investments, loading }) {
       )}
       <div style={{ height: 10 }} />
       <div style={{ color: 'var(--muted)', fontSize: 13 }}>
-        Receipt/report download will be enabled once backend provides generated receipt endpoints.
+        Receipts are not available in this version.
       </div>
+
     </div>
   );
 }

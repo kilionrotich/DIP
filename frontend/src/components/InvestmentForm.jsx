@@ -4,29 +4,16 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
   const isDisabled = Boolean(disabled);
 
   const [commitType, setCommitType] = useState('capital');
-
-  // Payment proof (upload M-Pesa slip / bank slip)
-  // NOTE: file upload isn't wired in this repo; UI keeps a placeholder.
-  const [paymentSlipFile, setPaymentSlipFile] = useState(null);
-  const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [transactionId, setTransactionId] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
 
-    const cleanProofUrl = (paymentProofUrl || '').trim();
     const cleanTxId = (transactionId || '').trim();
-
-    // Require at least one proof identifier to reduce failed commits.
-    if (!cleanProofUrl && !cleanTxId) {
-      setError('M-Pesa code or proof URL is required');
-      return;
-    }
 
     setLoading(true);
     try {
@@ -34,8 +21,6 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
         investor_id: user?._id || user?.id,
         amount: fixedAmount != null ? Number(fixedAmount) : undefined,
         mpesa_code: cleanTxId || undefined,
-        proof_url: cleanProofUrl || undefined,
-
       };
 
       await onSubmit(payload);
@@ -46,13 +31,15 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
     }
   }
 
-
   return (
     <form onSubmit={handleSubmit}>
       {error ? <div className="alert err">{error}</div> : null}
 
       <div className="form-group">
-        <div className="label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          className="label"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+        >
           <span>Required Investment</span>
           <span style={{ fontWeight: 800 }}>
             {fixedAmount != null && !Number.isNaN(Number(fixedAmount))
@@ -64,7 +51,6 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
           Investment amount is fixed by the deal. You cannot enter a custom amount.
         </div>
       </div>
-
 
       <div className="form-group">
         <label className="label">Commit Type</label>
@@ -79,21 +65,6 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
       </div>
 
       <div className="form-group">
-        <label className="label">Payment Proof URL (optional)</label>
-        <input
-          className="input"
-          value={paymentProofUrl}
-          onChange={(e) => setPaymentProofUrl(e.target.value)}
-          placeholder="https://..."
-          inputMode="url"
-        />
-        <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 8 }}>
-          File upload is not implemented yet; paste a receipt/transaction proof link if available.
-        </div>
-      </div>
-
-
-      <div className="form-group">
         <label className="label">Transaction ID (optional)</label>
         <input
           className="input"
@@ -103,13 +74,15 @@ export default function InvestmentForm({ dealId, user, fixedAmount, onSubmit, di
         />
       </div>
 
-
-      <button className="btn primary" disabled={loading || isDisabled} style={{ width: '100%', opacity: isDisabled ? 0.6 : 1 }} type="submit">
+      <button
+        className="btn primary"
+        disabled={loading || isDisabled}
+        style={{ width: '100%', opacity: isDisabled ? 0.6 : 1 }}
+        type="submit"
+      >
         {loading ? 'Committing...' : `Commit Investment to Deal ${dealId}`}
       </button>
-
     </form>
   );
 }
-
 

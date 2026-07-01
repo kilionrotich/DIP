@@ -7,8 +7,9 @@ import { getAvailableDeals, getInProgressDeals, cancelDeal, updateDeal, approveD
 import { getInvestors } from '../services/investorService';
 import { getRecentAuditLogs } from '../services/auditService';
 import AdminDealCard from '../components/AdminDealCard';
-import { getInboxMessages, sendMessage } from '../services/messageService';
+
 import { getInvestments, verifyInvestment, updateProfit } from '../services/investmentService';
+
 import '../styles/adminSidebar.css';
 
 function Avatar({ name, role, photoUrl }) {
@@ -126,6 +127,33 @@ export default function AdminDashboard() {
   const [investorsLoading, setInvestorsLoading] = useState(false);
   const [investorsError, setInvestorsError] = useState(null);
 
+  // Pending approvals section (pending investors)
+  const [pendingInvestors, setPendingInvestors] = useState([]);
+  const [pendingInvestorsLoading, setPendingInvestorsLoading] = useState(false);
+  const [pendingInvestorsError, setPendingInvestorsError] = useState(null);
+
+  // Refresh pending list (requires backend endpoint)
+  async function fetchPendingInvestors() {
+    setPendingInvestorsLoading(true);
+    setPendingInvestorsError(null);
+    try {
+      // Use existing getInvestors and filter locally if backend doesn't support a dedicated endpoint yet.
+      // Pending = investor with NO approved InvestorAdmin mapping.
+      const res = await getInvestors();
+      const allInvestors = Array.isArray(res?.investors) ? res.investors : res || [];
+      // NOTE: we can't know pending approvals without an endpoint.
+      // For now, show all investors with role=investor.
+      // This matches UI expectation until approval-status endpoint is added.
+      setPendingInvestors(allInvestors.filter((i) => i.role === 'investor'));
+    } catch (e) {
+      setPendingInvestorsError(e?.response?.data?.error || e?.message || 'Failed to load pending investors');
+    } finally {
+      setPendingInvestorsLoading(false);
+    }
+  }
+
+
+
   // Investments state (for verifying pending investments)
   const [investments, setInvestments] = useState([]);
   const [investmentsLoading, setInvestmentsLoading] = useState(false);
@@ -133,30 +161,7 @@ export default function AdminDashboard() {
   const [verifyingInvest, setVerifyingInvest] = useState(null);
   const [investorQuery, setInvestorQuery] = useState('');
 
-  // Messaging
-  const [inbox, setInbox] = useState([]);
-  const [inboxLoading, setInboxLoading] = useState(false);
-  const [inboxError, setInboxError] = useState(null);
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  const [replyBody, setReplyBody] = useState('');
-  const [sendingReply, setSendingReply] = useState(false);
 
-  async function fetchInbox() {
-    setInboxLoading(true);
-    setInboxError(null);
-    try {
-      // Fetch messages for the (first) admin.
-      const res = await getInboxMessages();
-      // messageService returns an array (or {messages}); keep it resilient.
-      setInbox(Array.isArray(res) ? res : res?.messages || res || []);
-
-
-    } catch (e) {
-      setInboxError(e?.response?.data?.error || e?.message || 'Failed to load inbox');
-    } finally {
-      setInboxLoading(false);
-    }
-  }
 
 
   // Activity Log
@@ -286,7 +291,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === 'investors' && !investorsLoading && investors.length === 0) fetchInvestors();
     if (activeTab === 'activity-log' && !auditLogsLoading && auditLogs.length === 0) fetchAuditLogs();
-    if (activeTab === 'messages' && !inboxLoading && inbox.length === 0) fetchInbox();
+
     if (activeTab === 'investments' && !investmentsLoading && investments.length === 0) fetchInvestments();
     if (activeTab === 'history' && !historyDealsLoading && historyDeals.length === 0) fetchHistoryDeals();
   }, [activeTab]);
@@ -486,9 +491,9 @@ export default function AdminDashboard() {
                 { key: 'activity-log', label: 'Activity Log' },
                 { key: 'active-deals', label: 'Active Deals' },
                 { key: 'create-deal', label: 'Create Deal' },
-                { key: 'messages', label: 'Messages' },
                 { key: 'investors', label: 'Investors' },
                 { key: 'investments', label: 'Investments' },
+
                 { key: 'history', label: 'History' },
               ].map((item, idx) => (
                 <button
@@ -818,105 +823,7 @@ export default function AdminDashboard() {
           </div>
         ) : null}
 
-        {activeTab === 'messages' ? (
-          <>
-            <h3 style={{ margin: '0 0 12px 0' }}>Messages & Replies</h3>
-            <div className="card">
 
-              <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: 280, borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: 12 }}>
-                  <div style={{ fontWeight: 900, marginBottom: 10, color: 'var(--text)' }}>Received</div>
-
-                  {inboxLoading ? <div style={{ color: 'var(--muted)' }}>Loading inbox...</div> : null}
-                  {inboxError ? <div className="alert err">{inboxError}</div> : null}
-                  {!inboxLoading && (!inbox || inbox.length === 0) ? (
-                    <div style={{ color: 'var(--muted)' }}>No messages yet.</div>
-                  ) : null}
-
-                  {(inbox || []).slice(0, 10).map((m) => (
-                    <div
-                      key={m.message_id || m.id}
-                      style={{
-                        padding: '10px 0',
-                        borderBottom: '1px solid rgba(255,255,255,0.06)',
-                      }}
-                    >
-                      <div style={{ fontWeight: 900 }}>{m.sender?.username || m.sender?.email || 'Investor'}</div>
-                      <div style={{ color: 'var(--muted)', marginTop: 6, fontWeight: 700 }}>{m.subject || 'No subject'}</div>
-                      <div style={{ color: 'var(--muted)', marginTop: 4, lineHeight: 1.35 }}>{m.body}</div>
-
-                      <div style={{ marginTop: 8 }}>
-                        <button
-                          type="button"
-                          className="btn"
-                          onClick={() => setSelectedMessage(m)}
-                          style={{ padding: '8px 10px' }}
-                        >
-                          Reply to this
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 280 }}>
-                  <div style={{ fontWeight: 900, marginBottom: 10, color: 'var(--text)' }}>Reply</div>
-
-                  {selectedMessage ? (
-                    <>
-                      <div style={{ color: 'var(--muted)', fontSize: 12, marginBottom: 10 }}>
-                        Replying to: <b>{selectedMessage.sender?.username || selectedMessage.sender?.email || 'Investor'}</b>
-                      </div>
-
-                      <textarea
-                        className="input"
-                        rows={4}
-                        value={replyBody}
-                        onChange={(e) => setReplyBody(e.target.value)}
-                        placeholder="Type your reply…"
-                        style={{ resize: 'vertical' }}
-                      />
-                      <div style={{ height: 12 }} />
-                      <button
-                        className="btn primary"
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            setSendingReply(true);
-                            setError(null);
-                            if (!selectedMessage) throw new Error('Select a message');
-                            if (!replyBody.trim()) throw new Error('Reply is required');
-
-                            await sendMessage({
-                              subject: 'Re: ' + (selectedMessage.subject || ''),
-                              body: replyBody,
-                            });
-
-                            setReplyBody('');
-                            setSelectedMessage(null);
-                          } catch (e) {
-                            setError(e?.response?.data?.error || e?.message || 'Failed to send reply');
-                          } finally {
-                            setSendingReply(false);
-                          }
-                        }}
-                        disabled={sendingReply || !replyBody.trim()}
-                      >
-                        {sendingReply ? 'Sending...' : 'Send Reply'}
-                      </button>
-                      <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
-                        Reply sent to the investor.
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ color: 'var(--muted)' }}>Select a message to reply.</div>
-                  )}
-                </div>
-
-              </div>
-            </div>
-          </>
-        ) : null}
 
         {activeTab === 'activity-log' ? (
 
@@ -985,9 +892,9 @@ export default function AdminDashboard() {
                       <div style={{ fontSize: 13, color: 'var(--muted)' }}>
                         Goal: {Number(d.fixed_amount || d.goal || d.target || d.amount_required || 0).toLocaleString()} KES
                       </div>
-                      {d.expected_return && (
+                      {d.expected_return !== undefined && d.expected_return !== null && d.expected_return !== '' && (
                         <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-                          Expected Return: {d.expected_return}%
+                          Expected Return: {Number(d.expected_return)}
                         </div>
                       )}
                     </div>

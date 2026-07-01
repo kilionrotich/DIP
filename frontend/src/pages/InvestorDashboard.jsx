@@ -1,18 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import useAuth from '../hooks/useAuth';
 import useDeals from '../hooks/useDeals';
-import { getProfits, getInvestments } from '../services/investmentService';
+import { getInvestments } from '../services/investmentService';
+
 import DealCrad from '../components/DealCrad';
 
 import {
   InvestorKPICards,
   ActiveDeals,
-  ProfitTrends,
   InvestmentHistory,
-  Notifications,
-  Diversification,
-  InboxSupport,
 } from '../components/investor';
+
 
 export default function InvestorDashboard() {
   const { user, logout } = useAuth();
@@ -23,7 +21,7 @@ export default function InvestorDashboard() {
 
 
   const [investments, setInvestments] = useState([]);
-  const [profitsRows, setProfitsRows] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -33,19 +31,14 @@ export default function InvestorDashboard() {
       setLoading(true);
       setError(null);
       try {
-        const [invRes, profRes] = await Promise.all([
-          getInvestments().catch(() => []),
-          getProfits().catch(() => []),
-        ]);
+        const invRes = await getInvestments().catch(() => []);
+
 
         if (!mounted) return;
 
         const invList = Array.isArray(invRes) ? invRes : invRes?.investments || [];
         setInvestments(invList);
 
-        // backend returns Profit.findAll => array
-        const profList = Array.isArray(profRes) ? profRes : profRes?.profits || [];
-        setProfitsRows(profList);
       } catch (e) {
         if (!mounted) return;
         setError(e?.message || 'Failed to load dashboard');
@@ -66,21 +59,17 @@ export default function InvestorDashboard() {
       0
     );
 
-    const profitsTotal = (profitsRows || []).reduce(
-      (sum, p) => sum + Number(p.total_profit ?? p.totalProfit ?? p.amount ?? p.profit ?? 0),
-      0
-    );
-
-    const currentValue = totalInvested + profitsTotal; // approximation
-    const roi = totalInvested > 0 ? (profitsTotal / totalInvested) * 100 : 0;
-
+    // Profit KPIs are omitted until profit history is guaranteed by backend.
+    const currentValue = totalInvested;
+    const roi = 0;
     return {
       totalInvested,
       currentValue,
       roi,
-      profits: profitsTotal,
+      profits: 0,
     };
-  }, [investments, profitsRows]);
+  }, [investments]);
+
 
   const pendingInvestments = useMemo(
     () => (Array.isArray(investments) ? investments.filter((i) => String(i.status).toLowerCase() === 'pending') : []),
@@ -176,28 +165,9 @@ export default function InvestorDashboard() {
 
       <div style={{ height: 18 }} />
 
-      {/* Profit Trends */}
-      <ProfitTrends />
-
-      <div style={{ height: 18 }} />
-
       {/* Investment History */}
       <InvestmentHistory investments={historyInvestments} loading={loading} />
 
-      <div style={{ height: 18 }} />
-
-      {/* Notifications */}
-      <Notifications />
-
-      <div style={{ height: 18 }} />
-
-      {/* Diversification */}
-      <Diversification />
-
-      <div style={{ height: 18 }} />
-
-      {/* Inbox/Support */}
-      <InboxSupport />
     </div>
   );
 }

@@ -133,7 +133,7 @@ export default function DealDetails() {
 
   return (
     <div className="container">
-      <button className="btn" onClick={() => navigate('/dashboard')}>← Back</button>
+      <button className="btn" onClick={() => navigate(-1)}>← Back</button>
 
       <div style={{ height: 14 }} />
 

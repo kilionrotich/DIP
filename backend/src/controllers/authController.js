@@ -161,6 +161,25 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    // Investor approval gate:
+    // - super_admin/admin can login immediately
+    // - investors must have at least one approved InvestorAdmin mapping
+    if (user.role === 'investor') {
+      const InvestorAdmin = (await import('../models/InvestorAdmin.js')).default;
+      const { Op } = (await import('sequelize')).Op;
+
+      const approval = await InvestorAdmin.findOne({
+        where: {
+          investor_id: user.user_id,
+          approved_at: { [Op.ne]: null },
+        },
+      });
+
+      if (!approval) {
+        return res.status(403).json({ error: 'Investor is pending approval' });
+      }
+    }
+
     const token = jwt.sign(
       { id: user.user_id, email: user.email, role: user.role },
       getJwtSecret(),
