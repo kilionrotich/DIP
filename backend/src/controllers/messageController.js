@@ -2,44 +2,46 @@ import Message from '../models/Message.js';
 import User from '../models/User.js';
 import Admin from '../models/Admin.js';
 
-const ADMIN_EMAIL = 'anthonypyatich@gmail.com';
-
-// Helper: find admin record by hardcoded email
-async function getAdminByEmail() {
-  return await Admin.findOne({
+// Helper: resolve the (single) admin that should receive investor messages.
+// Requirement: route to the first admin in the database.
+async function getPrimaryAdminOrFirst() {
+  const admin = await Admin.findOne({
+    order: [['created_at', 'ASC']],
     include: [
       {
         model: User,
         as: 'user',
-        where: { email: ADMIN_EMAIL, role: 'admin' },
+        attributes: ['user_id', 'email', 'username', 'role'],
       },
     ],
   });
+
+  return admin;
 }
 
-// Send a message. If no recipient specified, routes to the hardcoded admin.
+// Send a message. Always routes to the first admin.
+
 export async function sendMessage(req, res) {
   try {
-    let { recipient_id, receiver_id, subject, body } = req.body;
+    const { subject, body } = req.body || {};
 
     const sender_id = req.user?.id ?? req.user?.user_id;
+
     if (!sender_id) return res.status(403).json({ error: 'Unauthorized' });
 
-    // Accept either field name; resolve to hardcoded admin if missing
-    const targetReceiverId = recipient_id || receiver_id;
-
-    if (!targetReceiverId) {
-      const admin = await getAdminByEmail();
-      if (!admin) {
-        return res.status(404).json({
-          error: 'Admin not found with email ' + ADMIN_EMAIL,
-        });
-      }
-      receiver_id = admin.user_id;
-      recipient_id = admin.admin_id;
-    } else {
-      receiver_id = targetReceiverId;
+    // This system belongs to only one person.
+    // Ignore any client-provided recipient/receiver and route to the first admin.
+    const admin = await getPrimaryAdminOrFirst();
+    if (!admin) {
+      return res.status(404).json({ error: 'No admin account found' });
     }
+
+    const receiver_id = admin.user_id;
+    const recipient_id = admin.admin_id;
+
+
+
+
 
     if (!subject || typeof subject !== 'string') {
       return res.status(400).json({ error: 'Missing/invalid subject' });
@@ -87,15 +89,17 @@ export async function sendMessage(req, res) {
   }
 }
 
-// Get inbox messages for the authenticated user.
-// Uses receiver_id from JWT — works for both investors and admins.
+// Get inbox messages for the (single) admin.
 export async function getMessages(req, res) {
   try {
-    const currentUserId = req.user?.id ?? req.user?.user_id;
-    if (!currentUserId) return res.status(403).json({ error: 'Unauthorized' });
+    const admin = await getPrimaryAdminOrFirst();
+    if (!admin) {
+      return res.status(404).json({ error: 'No admin account found' });
+    }
 
     const { sender_id } = req.query;
-    const where = { receiver_id: currentUserId };
+
+    const where = { receiver_id: admin.user_id };
     if (sender_id) where.sender_id = sender_id;
 
     const messages = await Message.findAll({
@@ -110,11 +114,12 @@ export async function getMessages(req, res) {
       ],
     });
 
-    res.json({ messages });
+    return res.json({ messages });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Failed to fetch messages' });
   }
 }
+
 
 // Admin verifies a message.
 export async function verifyMessage(req, res) {

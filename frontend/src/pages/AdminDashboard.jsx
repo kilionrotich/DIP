@@ -145,9 +145,12 @@ export default function AdminDashboard() {
     setInboxLoading(true);
     setInboxError(null);
     try {
-      // Current UI uses inbox for the admin in AdminDashboard
-      const res = await getInboxMessages({});
-      setInbox(Array.isArray(res) ? res : res || []);
+      // Fetch messages for the (first) admin.
+      const res = await getInboxMessages();
+      // messageService returns an array (or {messages}); keep it resilient.
+      setInbox(Array.isArray(res) ? res : res?.messages || res || []);
+
+
     } catch (e) {
       setInboxError(e?.response?.data?.error || e?.message || 'Failed to load inbox');
     } finally {
